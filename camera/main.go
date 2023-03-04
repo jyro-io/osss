@@ -10,12 +10,12 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:6666")
+	listener, err := net.Listen("tcp", "0.0.0.0:7777")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "listen: %v", err)
 		return
 	}
-	log.Println("Listening on 0.0.0.0:6666")
+	log.Println("Listening on 0.0.0.0:7777")
 
 	for {
 		conn, err := listener.Accept()
@@ -25,7 +25,7 @@ func main() {
 		}
 		log.Printf("Accepted connection from: %v\n", conn.RemoteAddr())
 		go func() {
-			s := raspicam.NewStill()
+			s := raspicam.Vid()
 			errCh := make(chan error)
 			go func() {
 				for x := range errCh {
