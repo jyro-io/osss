@@ -1,18 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 
 	"github.com/davecgh/go-spew/spew"
 	"gopkg.in/yaml.v2"
 )
 
 func logError(error error) {
-	fmt.Println("osss: monitor: error:", error)
+	log.Println("osss: monitor: error:", error)
 }
 
 type Config struct {
@@ -34,25 +32,26 @@ func getConfig() Config {
 }
 
 func main() {
-	fmt.Println("osss: monitor: info: started")
+	log.Println("osss: monitor: info: started")
 	config := getConfig()
-	fmt.Println("osss: monitor: info: loaded config.yaml:")
+	log.Println("osss: monitor: info: loaded config.yaml:")
 	spew.Dump(config)
+
 	// create wifi network from config
 	listener, err := net.Listen("tcp", "0.0.0.0:7777")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "listen: %v", err)
+		logError(err)
 		return
 	}
-	log.Println("Listening on 0.0.0.0:7777")
+	log.Println("osss: monitor: listening on 0.0.0.0:7777")
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "accept: %v", err)
+			logError(err)
 			return
 		}
-		log.Printf("Accepted connection from: %v\n", conn.RemoteAddr())
+		log.Printf("osss: monitor: accepted connection from: %v\n", conn.RemoteAddr())
 		// accept video uploads from clients
 	}
 }

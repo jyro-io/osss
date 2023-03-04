@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dhowden/raspicam"
@@ -13,7 +11,7 @@ import (
 )
 
 func logError(error error) {
-	fmt.Println("osss: camera: error:", error)
+	log.Println("osss: camera: error:", error)
 }
 
 type Config struct {
@@ -35,41 +33,33 @@ func getConfig() Config {
 }
 
 func main() {
-	fmt.Println("osss: camera: info: started")
+	log.Println("osss: camera: info: started")
 	config := getConfig()
-	fmt.Println("osss: camera: info: loaded config.yaml:")
+	log.Println("osss: camera: info: loaded config.yaml:")
 	spew.Dump(config)
 
 	// scan local network for monitor listening on port 7777
-	client, err := net.DialTCP("tcp", "0.0.0.0:7777")
+	conn, err := net.Dial("tcp", "192.168.1.100:7777")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "listen: %v", err)
+		logError(err)
 		return
 	}
-	log.Println("Listening on 0.0.0.0:7777")
 
 	for {
 		// wait for IR to detect movement
-		// take video for configured time
-		// upload video to monitor
-		dummy_video_stream := []byte("videooo")
-		status, err := client.Write(dummy_video_stream)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "write error: %v", err)
-			return
-		}
+
+		v := raspicam.NewVid()
+		errCh := make(chan error)
 		go func() {
-			s := raspicam.Vid()
-			errCh := make(chan error)
-			go func() {
-				for x := range errCh {
-					fmt.Fprintf(os.Stderr, "%v\n", x)
-				}
-			}()
-			log.Println("Capturing video...")
-			raspicam.Capture(s, conn, errCh)
-			log.Println("Done")
-			conn.Close()
+			for x := range errCh {
+				logError(x)
+			}
 		}()
+
+		log.Println("osss: camera: capturing video...")
+		raspicam.Capture(v, conn, errCh)
+		log.Println("osss: camera: done")
 	}
+
+	conn.Close()
 }
