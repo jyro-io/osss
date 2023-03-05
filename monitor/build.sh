@@ -20,6 +20,7 @@ git checkout osss-monitor
 # generate wifi credentials
 python image-config/generate_credentials.py
 
+# build image
 cd pi-gen
 cp ../image-config/config config
 echo "IMG_NAME=$IMAGE" >> config
@@ -27,10 +28,6 @@ touch ./stage4/SKIP ./stage5/SKIP
 touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
 sudo ./build.sh
 cd ..
-
-# configure wifi
-# build application
-# install application to image
 
 if [ ! -f "/usr/bin/rpi-imager" ]; then
   sudo apt update && sudo apt install -y rpi-imager
