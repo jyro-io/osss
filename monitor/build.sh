@@ -1,15 +1,39 @@
 #!/usr/bin/env bash
 
-# this script builds the monitor application and installs it to an RPi OS image.
+# this script builds the osss-monitor application, 
+# creates a custom RPi-OS image, 
+# and installs the application to the custom image.
 
-if [ ! -f "2023-02-21-raspios-bullseye-arm64.img.xz" ]; then
-  wget https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2023-02-22/2023-02-21-raspios-bullseye-arm64.img.xz
+IMAGE=osss-monitor.img
+
+# image build dependencies
+sudo apt-get install -y \
+  coreutils quilt parted qemu-user-static debootstrap zerofree zip \
+  dosfstools libarchive-tools libcap2-bin grep rsync xz-utils file git curl bc \
+  qemu-utils kpartx gpg pigz
+
+if [ ! -d "pi-gen" ]; then
+  git clone --depth 1 git@github.com:jyro-io/pi-gen.git
 fi
+git checkout osss-monitor
 
-if [ ! -f "2023-02-21-raspios-bullseye-arm64.img" ]; then
-  xz --decompress --keep 2023-02-21-raspios-bullseye-arm64.img.xz
+# generate wifi credentials
+python generate_credentials.py
+
+cd pi-gen
+cp ../image-config/config config
+echo "IMG_NAME=$IMAGE" >> config
+touch ./stage4/SKIP ./stage5/SKIP
+touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
+sudo ./build.sh
+cd ..
+
+# configure wifi
+# build application
+# install application to image
+
+if [ ! -f "/usr/bin/rpi-imager" ]; then
+  sudo apt update && sudo apt install -y rpi-imager
 fi
-
-mount -o loop 2023-02-21-raspios-bullseye-arm64.img img/
-
-umount img/
+read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($IMAGE), and the sd card device. Press enter to begin."
+rpi-imager
