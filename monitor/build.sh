@@ -18,7 +18,7 @@ fi
 git checkout osss-monitor
 
 # generate wifi credentials
-python generate_credentials.py
+python image-config/generate_credentials.py
 
 cd pi-gen
 cp ../image-config/config config
