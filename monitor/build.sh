@@ -19,7 +19,7 @@ fi
 # build osss-monitor
 cd src
 go mod tidy
-go build -o ../../osss-monitor
+go build -o ../osss-monitor
 cd ..
 
 cd pi-gen
