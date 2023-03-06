@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-# this script builds the osss-monitor application, 
+# this script builds the osss applications, 
 # creates a custom RPi-OS image, 
 # and installs the application to the custom image.
 
-IMAGE=osss-monitor
+# usage:
+# bash build.sh monitor
+# bash build.sh camera
+
+APP=$1
+APPNAME=osss-$APP
+APPCONFIG=$APP.config
+ROOTDIR=$PWD
 
 # image build dependencies
 sudo apt-get install -y \
@@ -16,25 +23,25 @@ if [ ! -d "pi-gen" ]; then
   git clone git@github.com:jyro-io/pi-gen.git
 fi
 
-# build osss-monitor
-cd src
+# build app
+cd $APP/src
 go mod tidy
-go build -o ../osss-monitor
-cd ..
+go build -o ../$APPNAME
+cd $ROOTDIR
 
+cp $APP/$APPCONFIG pi-gen/$APPCONFIG
 cd pi-gen
-git checkout osss-monitor
+git checkout $APPNAME
 
 # generate wifi credentials
-#python image-config/generate_credentials.py
+#python config_wifi_credentials.py $APP
 
 # build image
-cp ../image-config/config config
-printf "IMG_NAME=$IMAGE\n" >> config
+printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
 touch ./stage4/SKIP ./stage5/SKIP
 touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
-sudo ./build.sh
-cd ..
+sudo ./build.sh -c $APPCONFIG
+cd $ROOTDIR
 
 if [ ! -f "/usr/bin/rpi-imager" ]; then
   sudo apt update && sudo apt install -y rpi-imager
