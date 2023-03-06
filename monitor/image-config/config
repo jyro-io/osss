@@ -1,3 +1,4 @@
 RELEASE=bullseye
 USE_QCOW2=1
 DEPLOY_COMPRESSION=none
+TARGET_HOSTNAME=osss-monitor
