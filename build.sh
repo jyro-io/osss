@@ -9,42 +9,50 @@
 # bash build.sh camera
 
 APP=$1
-APPNAME=osss-$APP
-APPCONFIG=$APP.config
-ROOTDIR=$PWD
+if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
+  APPNAME=osss-$APP
+  APPCONFIG=$APP.config
+  ROOTDIR=$PWD
 
-# image build dependencies
-sudo apt-get install -y \
-  coreutils quilt parted qemu-user-static debootstrap zerofree zip \
-  dosfstools libarchive-tools libcap2-bin grep rsync xz-utils file git curl bc \
-  qemu-utils kpartx gpg pigz
+  # image build dependencies
+  sudo apt-get install -y \
+    coreutils quilt parted qemu-user-static debootstrap zerofree zip \
+    dosfstools libarchive-tools libcap2-bin grep rsync xz-utils file git curl bc \
+    qemu-utils kpartx gpg pigz binfmt-support
 
-if [ ! -d "pi-gen" ]; then
-  git clone git@github.com:jyro-io/pi-gen.git
+  if [ ! -d "pi-gen" ]; then
+    git clone git@github.com:jyro-io/pi-gen.git
+  fi
+
+  # build app
+  cd $APP/src
+  go mod tidy
+  go build -o ../$APPNAME
+  cd $ROOTDIR
+
+  cp $APP/$APPCONFIG pi-gen/$APPCONFIG
+  cd pi-gen
+  git checkout $APPNAME
+  git pull
+
+  # generate wifi credentials
+  #python config_wifi_credentials.py $APP
+
+  # build image
+  touch ./stage4/SKIP ./stage5/SKIP
+  touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
+  if [ $APP = "monitor" ]; then
+    touch ./stage3/EXPORT_IMAGE
+  elif [ $APP = "camera" ]; then
+    touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
+  fi
+  printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
+  sudo CONTINUE=1 PRESERVE_CONTAINER=1 ./build-docker.sh -c $APPCONFIG
+  cd $ROOTDIR
+
+  if [ ! -f "/usr/bin/rpi-imager" ]; then
+    sudo apt update && sudo apt install -y rpi-imager
+  fi
+  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file (${APPNAME}.img), and the sd card device. Press enter to begin."
+  rpi-imager
 fi
-
-# build app
-cd $APP/src
-go mod tidy
-go build -o ../$APPNAME
-cd $ROOTDIR
-
-cp $APP/$APPCONFIG pi-gen/$APPCONFIG
-cd pi-gen
-git checkout $APPNAME
-
-# generate wifi credentials
-#python config_wifi_credentials.py $APP
-
-# build image
-printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
-touch ./stage4/SKIP ./stage5/SKIP
-touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
-sudo ./build.sh -c $APPCONFIG
-cd $ROOTDIR
-
-if [ ! -f "/usr/bin/rpi-imager" ]; then
-  sudo apt update && sudo apt install -y rpi-imager
-fi
-read -p "Insert your destination sd card now. In RPi Imager, select the custom image file (${IMAGE}.img), and the sd card device. Press enter to begin."
-rpi-imager
