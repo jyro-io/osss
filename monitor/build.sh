@@ -30,7 +30,7 @@ git checkout osss-monitor
 
 # build image
 cp ../image-config/config config
-echo "IMG_NAME=$IMAGE\n" >> config
+printf "IMG_NAME=$IMAGE\n" >> config
 touch ./stage4/SKIP ./stage5/SKIP
 touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
 sudo ./build.sh
