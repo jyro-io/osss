@@ -5,11 +5,11 @@
 # and installs the application to the custom image.
 
 # usage:
-# bash build.sh monitor
-# bash build.sh camera
+# bash build_image.sh monitor
+# bash build_image.sh camera
 
 APP=$1
-DEV=false
+DEV=true
 
 if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   APPNAME=osss-$APP
@@ -28,7 +28,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   # build app
   cd $APP
-  bash build.sh 
+  bash build.sh
   cd $ROOTDIR
 
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
@@ -44,7 +44,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     source .wpaenv
     set +o allexport
   else
-    echo "wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
+    echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
     exit 1
   fi
 
@@ -69,4 +69,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
   read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/$APPNAME-lite.img), and the sd card device. Press enter to begin."
   rpi-imager
+else
+  echo "error: argument must be one of [monitor, camera]"
+  exit 1
 fi
