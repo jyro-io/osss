@@ -31,6 +31,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   bash build.sh
   cd $ROOTDIR
 
+  # switch to app branch
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
   cd pi-gen
   git checkout $APPNAME
@@ -53,8 +54,18 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
   if [ $APP = "monitor" ]; then
     touch ./stage3/EXPORT_IMAGE
+    # copy app files
+    mkdir -p ./stage3/02-osss/files/
+    cp $ROOTDIR/$APP/$APPNAME ./stage3/02-osss/files/
+    cp $ROOTDIR/$APP/config.yaml ./stage3/02-osss/files/
+    cp $ROOTDIR/$APP/etc/$APPNAME.service ./stage3/02-osss/files/
   elif [ $APP = "camera" ]; then
     touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
+    # copy app files
+    mkdir -p ./stage2/04-osss/files/
+    cp $ROOTDIR/$APP/$APPNAME ./stage2/04-osss/files/
+    cp $ROOTDIR/$APP/config.yaml ./stage2/04-osss/files/
+    cp $ROOTDIR/$APP/etc/$APPNAME.service ./stage2/04-osss/files/
   fi
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
   if [ $DEV = true ]; then
@@ -64,10 +75,11 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
   cd $ROOTDIR
 
+  # write image to sd card
   if [ ! -f "/usr/bin/rpi-imager" ]; then
     sudo apt update && sudo apt install -y rpi-imager
   fi
-  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/$APPNAME-lite.img), and the sd card device. Press enter to begin."
+  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/DATE-$APPNAME-lite.img), and the sd card device. Press enter to begin."
   rpi-imager
 else
   echo "error: argument must be one of [monitor, camera]"

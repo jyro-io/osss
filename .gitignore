@@ -1,4 +1,5 @@
-osss-*
+osss-monitor
+osss-camera
 *.img
 pi-gen/
 .wpaenv
