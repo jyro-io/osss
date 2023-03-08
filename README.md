@@ -12,12 +12,10 @@ The build process has only been tested on Ubuntu 22.
 
 To build the software, follow these steps:
 
-* The monitor application needs to be built first: `bash build.sh monitor`
-* Followed by the camera application: `bash build.sh camera`
+* The monitor application needs to be built first: `bash build_image.sh monitor`
+* Followed by the camera application: `bash build_image.sh camera`
 
 ## Building the hardware
-
-Obviously, this is a little more complicated.
 
 You'll need a full RPi for the monitor (we use the 400, Model B should work fine as well),
 along with a screen. We used a touchscreen that works with RPi out of the box, in order

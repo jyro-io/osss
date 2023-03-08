@@ -10,4 +10,4 @@ fi
 
 cd src
 go mod tidy
-env GOOS=linux $ARCHOPT go build -o ../osss-camera
+env GOOS=linux $ARCHOPT go build -o ../osss-monitor

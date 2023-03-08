@@ -9,6 +9,8 @@
 # bash build.sh camera
 
 APP=$1
+DEV=true
+
 if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   APPNAME=osss-$APP
   APPCONFIG=$APP.config
@@ -25,9 +27,8 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
 
   # build app
-  cd $APP/src
-  go mod tidy
-  go build -o ../$APPNAME
+  cd $APP
+  bash build.sh 
   cd $ROOTDIR
 
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
@@ -35,8 +36,17 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   git checkout $APPNAME
   git pull
 
-  # generate wifi credentials
-  #python config_wifi_credentials.py $APP
+  # handle wifi credentials
+  if [ $APP = "monitor" ]; then
+    python wpa_credentials.py
+  elif [ $APP = "camera" ] && [ -f "$ROOTDIR/.wpaenv" ]; then
+    set -o allexport
+    source .wpaenv
+    set +o allexport
+  else
+    echo "wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
+    exit 1
+  fi
 
   # build image
   touch ./stage4/SKIP ./stage5/SKIP
@@ -47,12 +57,16 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
   fi
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
-  sudo CONTINUE=1 PRESERVE_CONTAINER=1 ./build-docker.sh -c $APPCONFIG
+  if [ $DEV = true ]; then
+    sudo CONTINUE=1 PRESERVE_CONTAINER=1 ./build-docker.sh -c $APPCONFIG
+  else
+    sudo ./build-docker.sh -c $APPCONFIG
+  fi
   cd $ROOTDIR
 
   if [ ! -f "/usr/bin/rpi-imager" ]; then
     sudo apt update && sudo apt install -y rpi-imager
   fi
-  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file (${APPNAME}.img), and the sd card device. Press enter to begin."
+  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/$APPNAME-lite.img), and the sd card device. Press enter to begin."
   rpi-imager
 fi

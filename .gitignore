@@ -1,3 +1,4 @@
 osss-*
 *.img
 pi-gen/
+.wpaenv
