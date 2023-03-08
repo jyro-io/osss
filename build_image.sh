@@ -9,7 +9,7 @@
 # bash build.sh camera
 
 APP=$1
-DEV=true
+DEV=false
 
 if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   APPNAME=osss-$APP
