@@ -6,6 +6,11 @@ This repository contains everything you need to configure
 a self-contained camera security system using open source
 software and the Raspberry Pi hardware platform.
 
+## Dependencies
+
+* PiSugar: https://github.com/PiSugar/PiSugar
+* Motion: https://github.com/Motion-Project/motion
+
 ## Building the software
 
 The build process has only been tested on Ubuntu 22.
@@ -17,12 +22,18 @@ To build the software, follow these steps:
 
 ## Building the hardware
 
-You'll need a full RPi for the monitor (we use the 400, Model B should work fine as well),
-along with a screen. We used a touchscreen that works with RPi out of the box, in order
-to avoid the need for a mouse.
+For the monitor, you'll need:
+
+* RPi 400 or Model B
+* Screen, we used a touchscreen to simplify usage 
 
 For the camera, you'll need:
 
 * RPi Zero W or Zero 2 W
-* Battery pack
-* Camera
+* PiSugar 3 battery
+  * https://www.tindie.com/products/pisugar/pisugar3-battery-for-raspberry-pi-zero/
+* A case, unless you're feeling particularly adventurous. 
+  We're currently 3D printing the PiSugar cases listed above, 
+  and mounting the camera on the outside: https://github.com/PiSugar/PiSugar/tree/master/model2
+* RPi Camera
+  * We 3D printed this camera housing: https://www.thingiverse.com/thing:1707484

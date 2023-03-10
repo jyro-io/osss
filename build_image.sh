@@ -28,7 +28,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   # build app
   cd $APP
-  bash build.sh
+  bash build.sh arm
   cd $ROOTDIR
 
   # switch to app branch
