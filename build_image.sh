@@ -29,6 +29,10 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   if [ ! -d "pi-gen" ]; then
     git clone git@github.com:rory-linehan/pi-gen.git
+  else
+    cd pi-gen
+    git clean -f
+    cd $ROOTDIR
   fi
 
   # build app
@@ -39,7 +43,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # switch to app branch
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
   cd pi-gen
-  git clean -f
   git checkout $APPNAME
   git pull
 
@@ -56,18 +59,16 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
 
   # build image
+  rm ./stage2/EXPORT_IMAGE ./stage2/EXPORT_NOOBS
   touch ./stage4/SKIP ./stage5/SKIP
   touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
-  if [ $APP = "monitor" ]; then
-    touch ./stage3/EXPORT_IMAGE
-  elif [ $APP = "camera" ]; then
-    touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
-  fi
+  touch ./$APPNAME/EXPORT_IMAGE
   # copy app files
-  mkdir -p ./$APPNAME/files/
-  cp $ROOTDIR/$APP/$APPNAME ./$APPNAME/files/
-  cp $ROOTDIR/$APP/config.yaml ./$APPNAME/files/
-  cp $ROOTDIR/$APP/etc/$APPNAME.service ./$APPNAME/files/
+  INSTALLDIRFILES=./$APPNAME/00-install/files/
+  mkdir -p $INSTALLDIRFILES
+  cp $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
+  cp $ROOTDIR/$APP/config.yaml $INSTALLDIRFILES
+  cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
   if [ $DEV = true ]; then
     sudo CONTINUE=1 ./build-docker.sh -c $APPCONFIG
