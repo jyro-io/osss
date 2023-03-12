@@ -23,7 +23,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     qemu-utils kpartx gpg pigz binfmt-support
 
   if [ ! -d "pi-gen" ]; then
-    git clone git@github.com:jyro-io/pi-gen.git
+    git clone git@github.com:rory-linehan/pi-gen.git
   fi
 
   # build app
@@ -34,6 +34,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # switch to app branch
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
   cd pi-gen
+  git clean -f
   git checkout $APPNAME
   git pull
 
