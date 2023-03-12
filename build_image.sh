@@ -54,19 +54,14 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
   if [ $APP = "monitor" ]; then
     touch ./stage3/EXPORT_IMAGE
-    # copy app files
-    mkdir -p ./stage3/02-osss/files/
-    cp $ROOTDIR/$APP/$APPNAME ./stage3/02-osss/files/
-    cp $ROOTDIR/$APP/config.yaml ./stage3/02-osss/files/
-    cp $ROOTDIR/$APP/etc/$APPNAME.service ./stage3/02-osss/files/
   elif [ $APP = "camera" ]; then
     touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
-    # copy app files
-    mkdir -p ./stage2/04-osss/files/
-    cp $ROOTDIR/$APP/$APPNAME ./stage2/04-osss/files/
-    cp $ROOTDIR/$APP/config.yaml ./stage2/04-osss/files/
-    cp $ROOTDIR/$APP/etc/$APPNAME.service ./stage2/04-osss/files/
   fi
+  # copy app files
+  mkdir -p ./$APPNAME/files/
+  cp $ROOTDIR/$APP/$APPNAME ./$APPNAME/files/
+  cp $ROOTDIR/$APP/config.yaml ./$APPNAME/files/
+  cp $ROOTDIR/$APP/etc/$APPNAME.service ./$APPNAME/files/
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
   if [ $DEV = true ]; then
     sudo CONTINUE=1 PRESERVE_CONTAINER=1 ./build-docker.sh -c $APPCONFIG
