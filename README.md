@@ -32,7 +32,7 @@ For the camera, you'll need:
 * RPi Zero W or Zero 2 W
 * PiSugar 3 battery
   * https://www.tindie.com/products/pisugar/pisugar3-battery-for-raspberry-pi-zero/
-* A case, unless you're feeling particularly adventurous. 
+* A case, unless you prefer to live life on the edge. 
   We're currently 3D printing the PiSugar cases listed above, 
   and mounting the camera on the outside: https://github.com/PiSugar/PiSugar/tree/master/model2
 * RPi Camera
