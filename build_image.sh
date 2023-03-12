@@ -7,9 +7,14 @@
 # usage:
 # bash build_image.sh monitor
 # bash build_image.sh camera
+#
+# .buildenv can contain:
+# DEV=[true/false] - this controls image build continuation flags
 
 APP=$1
-DEV=false
+if [ -f ".buildenv" ]; then
+  source .buildenv
+fi
 
 if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   APPNAME=osss-$APP
@@ -65,7 +70,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cp $ROOTDIR/$APP/etc/$APPNAME.service ./$APPNAME/files/
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
   if [ $DEV = true ]; then
-    sudo CONTINUE=1 PRESERVE_CONTAINER=1 ./build-docker.sh -c $APPCONFIG
+    sudo CONTINUE=1 ./build-docker.sh -c $APPCONFIG
   else
     sudo ./build-docker.sh -c $APPCONFIG
   fi

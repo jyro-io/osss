@@ -3,3 +3,4 @@ osss-camera
 *.img
 pi-gen/
 .wpaenv
+.buildenv
