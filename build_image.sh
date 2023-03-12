@@ -52,11 +52,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # build image
   touch ./stage4/SKIP ./stage5/SKIP
   touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
-  if [ $APP = "monitor" ]; then
-    touch ./stage3/EXPORT_IMAGE
-  elif [ $APP = "camera" ]; then
-    touch ./stage2/EXPORT_IMAGE ./stage3/SKIP ./stage3/SKIP_IMAGES
-  fi
+  touch ./$APPNAME/EXPORT_IMAGE
   # copy app files
   mkdir -p ./$APPNAME/files/
   cp $ROOTDIR/$APP/$APPNAME ./$APPNAME/files/
