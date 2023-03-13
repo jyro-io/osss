@@ -59,9 +59,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
 
   # build image
-  rm ./stage2/EXPORT_IMAGE ./stage2/EXPORT_NOOBS
-  touch ./stage4/SKIP ./stage5/SKIP
-  touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
   touch ./$APPNAME/EXPORT_IMAGE
   # copy app files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
