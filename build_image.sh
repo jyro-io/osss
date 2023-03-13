@@ -31,7 +31,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     git clone git@github.com:rory-linehan/pi-gen.git
   else
     cd pi-gen
-    git clean -f
+    git clean -fd
     cd $ROOTDIR
   fi
 
