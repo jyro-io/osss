@@ -50,9 +50,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   if [ $APP = "monitor" ]; then
     python wpa_credentials.py
   elif [ $APP = "camera" ] && [ -f "$ROOTDIR/.wpaenv" ]; then
-    set -o allexport
-    source $ROOTDIR/.wpaenv
-    set +o allexport
+    cat $ROOTDIR/.wpaenv >> camera.config
   else
     echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
     exit 1
