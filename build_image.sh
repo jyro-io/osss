@@ -76,7 +76,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   if [ ! -f "/usr/bin/rpi-imager" ]; then
     sudo apt update && sudo apt install -y rpi-imager
   fi
-  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/DATE-$APPNAME.img), and the sd card device. Press enter to begin."
+  read -p "Insert your destination sd card now. In RPi Imager, select the custom image file ($ROOTDIR/pi-gen/deploy/$(date +%Y-%m-%d)-$APPNAME.img), and the sd card device. Press enter to begin."
   rpi-imager
 else
   echo "error: argument must be one of [monitor, camera]"
