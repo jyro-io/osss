@@ -1,7 +1,7 @@
 import os
 import random, string
 
-ssid = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+ssid = ''.join(random.choices(string.ascii_letters + string.digits, k=24))
 wpa_password = ''.join(random.choices(string.ascii_letters + string.digits, k=63))
 
 hostapd_path = os.path.join('pi-gen', 'stage2', '02-net-tweaks', 'files', 'hostapd.conf')
