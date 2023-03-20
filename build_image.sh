@@ -35,6 +35,16 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     cd $ROOTDIR
   fi
 
+  # handle wifi credentials
+  if [ $APP = "monitor" ]; then
+    python wpa_credentials.py
+  elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
+    cat .wpaenv >> $APP/camera.config
+  else
+    echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
+    exit 1
+  fi
+
   # build app
   cd $APP
   bash build.sh arm
@@ -46,29 +56,23 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   git checkout $APPNAME
   git pull
 
-  # handle wifi credentials
-  if [ $APP = "monitor" ]; then
-    python wpa_credentials.py
-  elif [ $APP = "camera" ] && [ -f "$ROOTDIR/.wpaenv" ]; then
-    cat $ROOTDIR/.wpaenv >> camera.config
-  else
-    echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
-    exit 1
-  fi
+  # setup export files
+  # if [ $APP = "monitor" ]; then
+  # elif [ $APP = "camera" ]; then
 
-  # build image
-  touch ./$APPNAME/EXPORT_IMAGE
-  # copy app files
+  # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
   cp $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
   cp $ROOTDIR/$APP/config.yaml $INSTALLDIRFILES
   cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
+
+  # build image
   if [ $DEV = true ]; then
-    sudo CONTINUE=1 ./build-docker.sh -c $APPCONFIG
+    CONTINUE=1 bash ./build-docker.sh -c $APPCONFIG
   else
-    sudo ./build-docker.sh -c $APPCONFIG
+    bash build-docker.sh -c $APPCONFIG
   fi
   cd $ROOTDIR
 
