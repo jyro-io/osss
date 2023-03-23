@@ -32,6 +32,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   else
     cd pi-gen
     git clean -fd
+    git restore .
     cd $ROOTDIR
   fi
 
