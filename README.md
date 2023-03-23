@@ -18,6 +18,8 @@ The build process has only been tested on Ubuntu 22.
 To build the software, follow these steps:
 
 * The monitor application needs to be built first: `bash build_image.sh monitor`
+  * When you boot the monitor for the first time, 
+    make sure you skip the wifi connection as it's already configured.
 * Followed by the camera application: `bash build_image.sh camera`
 
 ## Building the hardware

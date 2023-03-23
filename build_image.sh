@@ -36,11 +36,14 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     cd $ROOTDIR
   fi
 
+  # copy app config
+  cp $APP/$APPCONFIG pi-gen/$APPCONFIG
+
   # handle wifi credentials
   if [ $APP = "monitor" ]; then
     python wpa_credentials.py
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
-    cat .wpaenv >> $APP/camera.config
+    cat .wpaenv >> pi-gen/$APPCONFIG
   else
     echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
     exit 1
@@ -52,7 +55,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cd $ROOTDIR
 
   # switch to app branch
-  cp $APP/$APPCONFIG pi-gen/$APPCONFIG
   cd pi-gen
   git checkout $APPNAME
   git pull
@@ -60,7 +62,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # setup export files
   if [ $APP = "monitor" ]; then
     rm -v ./stage2/EXPORT*
-  # elif [ $APP = "camera" ]; then
   fi
 
   # setup configuration files
