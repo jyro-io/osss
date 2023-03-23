@@ -58,8 +58,10 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   git pull
 
   # setup export files
-  # if [ $APP = "monitor" ]; then
+  if [ $APP = "monitor" ]; then
+    rm -v ./stage2/EXPORT*
   # elif [ $APP = "camera" ]; then
+  fi
 
   # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
