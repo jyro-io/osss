@@ -4,7 +4,7 @@ Type=Application
 Name=Camera Monitor
 Comment=OSSS camera stream monitor
 # udp://[[<source address>]@[<bind address>][:<bind port>]]
-Exec=vlc udp://localhost:7777
+Exec=vlc --fullscreen udp://localhost:7777
 StartupNotify=false
 Terminal=true
 Hidden=false
