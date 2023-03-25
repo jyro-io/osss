@@ -59,11 +59,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   git checkout $APPNAME
   git pull
 
-  # setup export files
-  if [ $APP = "monitor" ]; then
-    rm -v ./stage2/EXPORT*
-  fi
-
   # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
@@ -71,6 +66,12 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cp $ROOTDIR/$APP/config.yaml $INSTALLDIRFILES
   cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
+
+  # more config for monitor
+  if [ $APP = "monitor" ]; then
+    rm -v ./stage2/EXPORT*
+    cp $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
+  fi
 
   # build image
   if [ $DEV = true ]; then
