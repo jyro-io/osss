@@ -20,6 +20,7 @@ fi
 if [ $DOCKER_BUILD = true ]; then
   BUILD="bash build-docker.sh"
   if [ $DEV = false ]; then
+    # true -> false means a lingering container is present unless manually removed
     docker rm pigen_work
   fi
 else
