@@ -19,6 +19,9 @@ fi
 
 if [ $DOCKER_BUILD = true ]; then
   BUILD="bash build-docker.sh"
+  if [ $DEV = false ]; then
+    docker rm pigen_work
+  fi
 else
   BUILD="sudo bash build.sh"
 fi
