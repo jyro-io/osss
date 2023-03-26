@@ -37,21 +37,35 @@ func main() {
 	log.Println("osss: monitor: info: loaded config.yaml:")
 	spew.Dump(config)
 
-	// create wifi network from config
-	listener, err := net.Listen("tcp", "0.0.0.0:7777")
+	// start camera stream listening server
+	cameraListener, err := net.Listen("tcp", "0.0.0.0:7776")
 	if err != nil {
 		logError(err)
 		return
 	}
-	log.Println("osss: monitor: listening on 0.0.0.0:7777")
+	log.Println("osss: monitor: started camera listener on 0.0.0.0:7776")
+
+	// start localhost camera stream monitoring server
+	monitorListener, err := net.Listen("tcp", "0.0.0.0:7777")
+	if err != nil {
+		logError(err)
+		return
+	}
+	log.Println("osss: monitor: started camera listener on 0.0.0.0:7777")
 
 	for {
-		conn, err := listener.Accept()
+		conn, err := cameraListener.Accept()
+		if err != nil {
+			logError(err)
+			return
+		}
+		conn, err = monitorListener.Accept()
 		if err != nil {
 			logError(err)
 			return
 		}
 		log.Printf("osss: monitor: accepted connection from: %v\n", conn.RemoteAddr())
-		// accept video uploads from clients
+		// watch camera streams for data
+		// switch localhost:7777 stream to most recently active camera
 	}
 }
