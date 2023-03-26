@@ -18,8 +18,6 @@ The build process has only been tested on Ubuntu 22.
 To build the software, follow these steps:
 
 * The monitor application needs to be built first: `bash build_image.sh monitor`
-  * When you boot the monitor for the first time, 
-    make sure you skip the wifi connection as it's already configured.
 * Followed by the camera application: `bash build_image.sh camera`
 
 ## Building the hardware
@@ -39,3 +37,7 @@ For the camera, you'll need:
   and mounting the camera on the outside: https://github.com/PiSugar/PiSugar/tree/master/model2
 * RPi Camera
   * We 3D printed this camera housing: https://www.thingiverse.com/thing:1707484
+
+## Future Development 
+
+* Add support for capturing video clips on the monitor and saving to a mounted USB drive.
