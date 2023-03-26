@@ -9,11 +9,18 @@
 # bash build_image.sh camera
 #
 # .buildenv can contain:
-# DEV=[true/false] - this controls image build continuation flags
+# DEV=[true/false] - this controls image build continuation flags, and automatic git cleanup/update
+# DOCKER_BUILD=[true/false] - Docker build flag
 
 APP=$1
 if [ -f ".buildenv" ]; then
   source .buildenv
+fi
+
+if [ $DOCKER_BUILD = true ]; then
+  BUILD="bash build-docker.sh"
+else
+  BUILD="sudo bash build.sh"
 fi
 
 if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
@@ -30,10 +37,12 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   if [ ! -d "pi-gen" ]; then
     git clone git@github.com:rory-linehan/pi-gen.git
   else
-    cd pi-gen
-    git clean -fd
-    git restore .
-    cd $ROOTDIR
+    if [ $DEV = false ]; then
+      cd pi-gen
+      git clean -fd
+      git restore .
+      cd $ROOTDIR
+    fi
   fi
 
   # copy app config
@@ -57,7 +66,9 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # switch to app branch
   cd pi-gen
   git checkout $APPNAME
-  git pull
+  if [ $DEV = false ]; then
+    git pull
+  fi
 
   # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
@@ -75,9 +86,9 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   # build image
   if [ $DEV = true ]; then
-    CONTINUE=1 bash ./build-docker.sh -c $APPCONFIG
+    CONTINUE=1 PRESERVE_CONTAINER=1 $BUILD -c $APPCONFIG
   else
-    bash build-docker.sh -c $APPCONFIG
+    $BUILD -c $APPCONFIG
   fi
   cd $ROOTDIR
 
