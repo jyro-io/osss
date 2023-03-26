@@ -59,12 +59,13 @@ func main() {
 			logError(err)
 			return
 		}
+		log.Printf("osss: monitor: accepted camera connection from: %v\n", conn.RemoteAddr())
 		conn, err = monitorListener.Accept()
 		if err != nil {
 			logError(err)
 			return
 		}
-		log.Printf("osss: monitor: accepted connection from: %v\n", conn.RemoteAddr())
+		log.Printf("osss: monitor: accepted monitor connection from: %v\n", conn.RemoteAddr())
 		// watch camera streams for data
 		// switch localhost:7777 stream to most recently active camera
 	}
