@@ -1,0 +1,3 @@
+monitor:
+  cameraPort: 7776
+  monitorPort: 7777
