@@ -1,6 +1,13 @@
 import os
 import random, string
 
+config_path = os.path.join('pi-gen', 'monitor.config')
+with open(config_path, 'r') as handle:
+  contents = handle.read()
+  contents = contents.replace('osssraspberry', input('Enter your chosen admin password: '))
+with open(config_path, 'w') as handle:
+  handle.write(contents)
+
 ssid = ''.join(random.choices(string.ascii_letters + string.digits, k=24))
 wpa_password = ''.join(random.choices(string.ascii_letters + string.digits, k=63))
 

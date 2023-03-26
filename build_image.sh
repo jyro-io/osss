@@ -53,7 +53,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   # handle wifi credentials
   if [ $APP = "monitor" ]; then
-    python wpa_credentials.py
+    python credentials.py
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
     cat .wpaenv >> pi-gen/$APPCONFIG
   else
