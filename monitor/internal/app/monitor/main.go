@@ -40,15 +40,6 @@ func getConfig(file string) Config {
 	return c
 }
 
-func incrementIP(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
-	}
-}
-
 func main() {
 	configFile := flag.String("config-file", "configs/config.yaml", "config file location")
 	flag.Parse()
