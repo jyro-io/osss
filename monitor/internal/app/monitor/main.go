@@ -63,8 +63,7 @@ func main() {
 	)
 	cameraAddresses := networkScanner.Scan()
 
-	cameraAddress := fmt.Sprintf(":%s", strconv.Itoa(config.Monitor.port))
-	serverAddr, err := net.ResolveUDPAddr("udp", cameraAddress)
+	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", strconv.Itoa(config.Monitor.port)))
 	if err != nil {
 		logError(err)
 	}
@@ -73,7 +72,7 @@ func main() {
 		logError(err)
 	}
 	cameraBuffer := make([]byte, 1024)
-	logLine(fmt.Sprintf("started camera listener on %s", cameraAddress))
+	logLine(fmt.Sprintf("started camera listener on %s", serverAddr.String()))
 
 	// start localhost camera stream monitoring server
 	monitorAddress := fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(config.Monitor.port))
