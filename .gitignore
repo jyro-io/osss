@@ -3,3 +3,5 @@ osss-camera
 *.img
 pi-gen/
 .wpaenv
+.python-version
+*.log

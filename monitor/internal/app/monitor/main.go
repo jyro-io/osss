@@ -1,18 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/jessfraz/netscan/pkg/scanner"
 	"gopkg.in/yaml.v2"
 )
 
 func logError(error error) {
-	log.Println("osss: monitor: error:", error)
+	log.Println("osss: monitor: error: ", error)
 }
 
 func logLine(message string) {
@@ -21,14 +22,14 @@ func logLine(message string) {
 
 type Config struct {
 	Monitor struct {
-		cameraPort  int
-		monitorPort int
-	}
+		address string `yaml:"address"`
+		port    int    `yaml:"port"`
+	} `yaml:"monitor"`
 }
 
-func getConfig() Config {
+func getConfig(file string) Config {
 	c := Config{}
-	yamlFile, err := ioutil.ReadFile("config.yaml")
+	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
 		logError(err)
 	}
@@ -39,43 +40,61 @@ func getConfig() Config {
 	return c
 }
 
-func main() {
-	logLine("started")
-	config := getConfig()
-	logLine("loaded config.yaml")
-	spew.Dump(config)
+func incrementIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
 
-	// start camera stream listening server
-	cameraEndpoint := fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(config.Monitor.cameraPort))
-	cameraListener, err := net.Listen("tcp", cameraEndpoint)
+func main() {
+	configFile := flag.String("config-file", "configs/config.yaml", "config file location")
+	flag.Parse()
+	logLine(*configFile)
+
+	logLine("started")
+	config := getConfig(*configFile)
+	logLine("loaded config.yaml")
+
+	networkScanner := scanner.NewScanner(
+		scanner.WithPorts([]int{config.Monitor.port}),
+	)
+	cameraAddresses := networkScanner.Scan()
+
+	cameraAddress := fmt.Sprintf(":%s", strconv.Itoa(config.Monitor.port))
+	serverAddr, err := net.ResolveUDPAddr("udp", cameraAddress)
 	if err != nil {
 		logError(err)
-		return
 	}
-	logLine(fmt.Sprintf("started camera listener on %s", cameraEndpoint))
+	cameraConn, err := net.ListenUDP("udp", serverAddr)
+	if err != nil {
+		logError(err)
+	}
+	cameraBuffer := make([]byte, 1024)
+	logLine(fmt.Sprintf("started camera listener on %s", cameraAddress))
 
 	// start localhost camera stream monitoring server
-	monitorEndpoint := fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(config.Monitor.cameraPort))
-	monitorListener, err := net.Listen("tcp", monitorEndpoint)
+	monitorAddress := fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(config.Monitor.port))
+	monitorListener, err := net.Listen("udp", monitorAddress)
 	if err != nil {
 		logError(err)
-		return
 	}
-	logLine(fmt.Sprintf("started monitor listener on %s", monitorEndpoint))
+	logLine(fmt.Sprintf("started monitor listener on %s", monitorAddress))
 
 	for {
-		conn, err := cameraListener.Accept()
+		n, addr, err := cameraConn.ReadFromUDP(buf)
 		if err != nil {
-			logError(err)
-			return
+			fmt.Printf("Error reading from UDP: %s", err.Error())
+			continue
 		}
-		logLine(fmt.Sprintf("accepted camera connection from: %s", conn.RemoteAddr()))
-		conn, err = monitorListener.Accept()
+		fmt.Printf("Received %d bytes from %s: %s\n", n, addr.String(), string(buf[:n]))
+		_, err = cameraConn.WriteToUDP(buf[:n], addr)
 		if err != nil {
-			logError(err)
-			return
+			fmt.Printf("Error writing to UDP: %s", err.Error())
+			continue
 		}
-		logLine(fmt.Sprintf("accepted monitor connection from: %s", conn.RemoteAddr()))
 		// watch camera streams for data
 		// switch localhost:7777 stream to most recently active camera
 	}
