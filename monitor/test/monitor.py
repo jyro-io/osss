@@ -1,6 +1,7 @@
 import subprocess
 import socket
 import sys
+import time
 
 print('running monitor tests...')
 
@@ -8,9 +9,10 @@ monitor_log_write = open('osss-monitor.json', 'w')
 # start monitor in the background
 monitor = subprocess.Popen(
   ['./osss-monitor'], 
-  stdout=subprocess.PIPE, 
+  stdout=monitor_log_write, 
   stderr=monitor_log_write
 )
+time.sleep(1)  # wait for start
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 monitorEndpoint = ('127.0.0.1', 7777)
@@ -20,6 +22,7 @@ try:
   print(f"sent message: \"{message}\" to {monitorEndpoint}")
 finally:
   sock.close()
+time.sleep(1)  # wait for server receive
 
 monitor.terminate()
 

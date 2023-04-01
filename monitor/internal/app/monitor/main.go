@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -60,17 +59,16 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	var cameraBuffer bytes.Buffer
+	cameraBuffer := make([]byte, 1024)
 	log.Info(fmt.Sprintf("started camera listener on %s", serverAddr.String()))
 
 	for {
-		n, addr, err := conn.ReadFromUDP(cameraBuffer.Bytes())
+		n, addr, err := conn.ReadFromUDP(cameraBuffer)
 		if err != nil {
 			log.Error(fmt.Sprintf("error reading from UDP: %s", err.Error()))
 			continue
 		}
-		log.Info(fmt.Sprintf("received %d bytes from %s: %s\n", n, addr.String(), cameraBuffer.Bytes()[:n]))
-		cameraBuffer.Reset()
+		log.Info(fmt.Sprintf("received %d bytes from %s: %s", n, addr.String(), cameraBuffer[:n]))
 		// watch camera streams for data
 		// switch localhost:7777 stream to most recently active camera
 	}
