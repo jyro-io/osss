@@ -1,90 +1,76 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"net"
+	"os"
 	"strconv"
 
-	"github.com/jessfraz/netscan/pkg/scanner"
-	"gopkg.in/yaml.v2"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
-
-func logError(error error) {
-	log.Println("osss: monitor: error: ", error)
-}
-
-func logLine(message string) {
-	log.Println(fmt.Sprintf("osss: monitor: %s", message))
-}
 
 type Config struct {
 	Monitor struct {
-		address string `yaml:"address"`
-		port    int    `yaml:"port"`
+		Address string `yaml:"address"`
+		Port    int    `yaml:"port"`
 	} `yaml:"monitor"`
 }
 
 func getConfig(file string) Config {
+	handle, err := os.Open(file)
+	if err != nil {
+		log.Fatalf("Failed to open file: %s", err)
+	}
+	defer handle.Close()
+
+	content, err := io.ReadAll(handle)
+	if err != nil {
+		log.Fatalf("Failed to read file: %s", err)
+	}
+
 	c := Config{}
-	yamlFile, err := ioutil.ReadFile(file)
+	err = yaml.Unmarshal(content, &c)
 	if err != nil {
-		logError(err)
+		log.Error(err)
 	}
-	err = yaml.Unmarshal(yamlFile, &c)
-	if err != nil {
-		logError(err)
-	}
+
 	return c
 }
 
 func main() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.Info("started")
+
 	configFile := flag.String("config-file", "configs/config.yaml", "config file location")
 	flag.Parse()
-	logLine(*configFile)
-
-	logLine("started")
+	log.Info(*configFile)
 	config := getConfig(*configFile)
-	logLine("loaded config.yaml")
+	log.Info(config)
 
-	networkScanner := scanner.NewScanner(
-		scanner.WithPorts([]int{config.Monitor.port}),
-	)
-	cameraAddresses := networkScanner.Scan()
-
-	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", strconv.Itoa(config.Monitor.port)))
+	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", config.Monitor.Address, strconv.Itoa(config.Monitor.Port)))
 	if err != nil {
-		logError(err)
+		log.Fatal(err)
 	}
-	cameraConn, err := net.ListenUDP("udp", serverAddr)
+	conn, err := net.ListenUDP("udp", serverAddr)
 	if err != nil {
-		logError(err)
+		log.Fatal(err)
 	}
-	cameraBuffer := make([]byte, 1024)
-	logLine(fmt.Sprintf("started camera listener on %s", serverAddr.String()))
-
-	// start localhost camera stream monitoring server
-	monitorAddress := fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(config.Monitor.port))
-	monitorListener, err := net.Listen("udp", monitorAddress)
-	if err != nil {
-		logError(err)
-	}
-	logLine(fmt.Sprintf("started monitor listener on %s", monitorAddress))
+	defer conn.Close()
+	var cameraBuffer bytes.Buffer
+	log.Info(fmt.Sprintf("started camera listener on %s", serverAddr.String()))
 
 	for {
-		n, addr, err := cameraConn.ReadFromUDP(buf)
+		n, addr, err := conn.ReadFromUDP(cameraBuffer.Bytes())
 		if err != nil {
-			fmt.Printf("Error reading from UDP: %s", err.Error())
+			log.Error(fmt.Sprintf("error reading from UDP: %s", err.Error()))
 			continue
 		}
-		fmt.Printf("Received %d bytes from %s: %s\n", n, addr.String(), string(buf[:n]))
-		_, err = cameraConn.WriteToUDP(buf[:n], addr)
-		if err != nil {
-			fmt.Printf("Error writing to UDP: %s", err.Error())
-			continue
-		}
+		log.Info(fmt.Sprintf("received %d bytes from %s: %s\n", n, addr.String(), cameraBuffer.Bytes()[:n]))
+		cameraBuffer.Reset()
 		// watch camera streams for data
 		// switch localhost:7777 stream to most recently active camera
 	}
