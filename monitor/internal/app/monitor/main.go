@@ -14,8 +14,9 @@ import (
 
 type Config struct {
 	Monitor struct {
-		Address string `yaml:"address"`
-		Port    int    `yaml:"port"`
+		LogLevel string `yaml:"logLevel"`
+		Address  string `yaml:"address"`
+		Port     int    `yaml:"port"`
 	} `yaml:"monitor"`
 }
 
@@ -50,6 +51,12 @@ func main() {
 	config := getConfig(*configFile)
 	log.Info(config)
 
+	level, err := log.ParseLevel(config.Monitor.LogLevel)
+	if err != nil {
+		log.Fatalf("invalid log level: %s", err)
+	}
+	log.SetLevel(level)
+
 	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", config.Monitor.Address, strconv.Itoa(config.Monitor.Port)))
 	if err != nil {
 		log.Fatal(err)
@@ -68,7 +75,7 @@ func main() {
 			log.Error(fmt.Sprintf("error reading from UDP: %s", err.Error()))
 			continue
 		}
-		log.Info(fmt.Sprintf("received %d bytes from %s: %s", n, addr.String(), cameraBuffer[:n]))
+		log.Debug(fmt.Sprintf("received %d bytes from %s", n, addr.String()))
 		// watch camera streams for data
 		// switch localhost:7777 stream to most recently active camera
 	}

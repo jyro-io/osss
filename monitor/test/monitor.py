@@ -3,6 +3,10 @@ import socket
 import sys
 import time
 
+def end_with_error(handle):
+  handle.close()
+  sys.exit(1)
+
 print('running monitor tests...')
 
 monitor_log_write = open('osss-monitor.json', 'w')
@@ -16,7 +20,7 @@ time.sleep(1)  # wait for start
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 monitorEndpoint = ('127.0.0.1', 7777)
-message = 'message for testing'
+message = 'message for testing'  # 19 bytes
 try:
   sock.sendto(message.encode(), monitorEndpoint)
   print(f"sent message: \"{message}\" to {monitorEndpoint}")
@@ -28,6 +32,6 @@ monitor.terminate()
 
 # examine output
 monitor_log_read = open('osss-monitor.json', 'r')
-if message not in monitor_log_read.read():
+if 'received 19 bytes from 127.0.0.1' not in monitor_log_read.read():
   print('monitor failed to receive test message')
-  sys.exit(1)
+  end_with_error(monitor_log_read)
