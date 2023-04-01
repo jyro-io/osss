@@ -22,7 +22,6 @@ finally:
   sock.close()
 
 monitor.terminate()
-monitor_log_write.close()
 
 # examine output
 monitor_log_read = open('osss-monitor.json', 'r')
