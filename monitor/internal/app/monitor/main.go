@@ -13,11 +13,9 @@ import (
 )
 
 type Config struct {
-	Monitor struct {
-		LogLevel string `yaml:"logLevel"`
-		Address  string `yaml:"address"`
-		Port     int    `yaml:"port"`
-	} `yaml:"monitor"`
+	LogLevel string `yaml:"logLevel"`
+	Address  string `yaml:"address"`
+	Port     int    `yaml:"port"`
 }
 
 func getConfig(file string) Config {
@@ -41,23 +39,39 @@ func getConfig(file string) Config {
 	return c
 }
 
+type Camera struct {
+	Address *net.UDPAddr
+	Buffer  []byte
+}
+
+func addCamera(addr *net.UDPAddr, cameras []Camera) []Camera {
+	for _, camera := range cameras {
+		if camera.Address == addr {
+			return cameras
+		}
+	}
+	cameras = append(cameras, Camera{Address: addr, Buffer: make([]byte, 1024)})
+	log.Debug("added camera: ", addr)
+	return cameras
+}
+
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
 
 	configFile := flag.String("config-file", "configs/config.yaml", "config file location")
 	flag.Parse()
-	log.Info(*configFile)
+	log.Debug(*configFile)
 	config := getConfig(*configFile)
-	log.Info(config)
+	log.Debug(config)
 
-	level, err := log.ParseLevel(config.Monitor.LogLevel)
+	level, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
 		log.Fatalf("invalid log level: %s", err)
 	}
 	log.SetLevel(level)
 
-	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", config.Monitor.Address, strconv.Itoa(config.Monitor.Port)))
+	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", config.Address, strconv.Itoa(config.Port)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,17 +80,22 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	cameraBuffer := make([]byte, 1024)
-	log.Info(fmt.Sprintf("started camera listener on %s", serverAddr.String()))
+	log.Info("started camera listener on ", serverAddr.String())
 
+	netBuffer := make([]byte, 1024*1024) // 1GB buffer
+	cameras := []Camera{}
 	for {
-		n, addr, err := conn.ReadFromUDP(cameraBuffer)
+		n, addr, err := conn.ReadFromUDP(netBuffer)
 		if err != nil {
-			log.Error(fmt.Sprintf("error reading from UDP: %s", err.Error()))
+			log.Error("error reading from UDP: ", err.Error())
 			continue
 		}
-		log.Debug(fmt.Sprintf("received %d bytes from %s", n, addr.String()))
-		// watch camera streams for data
+		addCamera(addr, cameras)
+
+		go func(data []byte, addr *net.UDPAddr) {
+			log.Debug(fmt.Sprintf("received %d bytes from %s", len(data), addr.String()))
+		}(netBuffer[:n], addr)
+
 		// switch localhost:7777 stream to most recently active camera
 	}
 }
