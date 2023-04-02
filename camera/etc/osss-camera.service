@@ -3,6 +3,7 @@ Description=Open Source Security System Camera
 Documentation=https://github.com/jyro-io/osss
 After=network-online.target
 Wants=network-online.target
+Requires=motion.service
 
 [Service]
 Type=notify

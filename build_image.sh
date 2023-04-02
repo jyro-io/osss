@@ -7,10 +7,6 @@
 # usage:
 # bash build_image.sh monitor
 # bash build_image.sh camera
-#
-# .buildenv can contain:
-# DEV=[true/false] - this controls image build continuation flags, and automatic git cleanup/update
-# DOCKER_BUILD=[true/false] - Docker build flag
 
 APP=$1
 if [ -f ".buildenv" ]; then
@@ -78,7 +74,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   INSTALLDIRFILES=./$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
   cp $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
-  cp $ROOTDIR/$APP/config.yaml $INSTALLDIRFILES
+  cp $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
   cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
 
