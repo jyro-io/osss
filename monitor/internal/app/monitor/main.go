@@ -22,13 +22,13 @@ type Config struct {
 func getConfig(file string) Config {
 	handle, err := os.Open(file)
 	if err != nil {
-		log.Fatalf("Failed to open file: %s", err)
+		log.Fatalf("failed to open file: %s", err)
 	}
 	defer handle.Close()
 
 	content, err := io.ReadAll(handle)
 	if err != nil {
-		log.Fatalf("Failed to read file: %s", err)
+		log.Fatalf("failed to read file: %s", err)
 	}
 
 	c := Config{}
