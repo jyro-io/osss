@@ -51,7 +51,8 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
 
   # handle wifi credentials for camera
   if [ $APP = "monitor" ]; then
-    python $APP/scripts/configure.py
+    cd $ROOTDIR
+    python $APP/scripts/configure.py  # configure monitor
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
     cat .wpaenv >> pi-gen/$APPCONFIG
   else
@@ -90,7 +91,9 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     cp $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
   elif [ $APP = "camera" ]; then
     cp $ROOTDIR/$APP/etc/motion.conf $INSTALLDIRFILES
-    python $APP/scripts/configure.py
+    cd $ROOTDIR
+    python $APP/scripts/configure.py  # configure camera
+    cd pi-gen
   fi
 
   # build image
