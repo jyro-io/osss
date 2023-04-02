@@ -17,6 +17,10 @@ def fail(monitor):
   monitor.terminate()
   sys.exit(1)
 
+def succeed(monitor):
+  monitor.terminate()
+  sys.exit(0)
+
 print('loading config...')
 parsed_yaml = parse_yaml_file('configs/config.yaml')
 
@@ -51,6 +55,7 @@ try:
   print(f"sent data on camera listener: \"{message2}\" to {cameraListener}")
 finally:
   sock1.close()
+  sock2.close()
 
 # wait for response from monitor feed
 
@@ -66,4 +71,4 @@ if message1 not in messages or message2 not in messages:
   print('failed to receive data on monitor feed')
   fail(monitor)
 
-monitor.terminate()
+succeed(monitor)
