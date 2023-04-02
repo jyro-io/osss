@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"net"
 	"os"
 
-	"github.com/dhowden/raspicam"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -15,6 +15,7 @@ type Config struct {
 	LogLevel       string `yaml:"logLevel"`
 	MonitorAddress string `yaml:"address"`
 	Port           int    `yaml:"port"`
+	Stream         string `yaml:"stream"`
 }
 
 func getConfig(file string) Config {
@@ -67,17 +68,24 @@ func main() {
 	log.Info("connected to monitor on ", monitorAddr.String())
 
 	for {
-		// wait for movement
-		v := raspicam.NewVid()
-		errCh := make(chan error)
-		go func() {
-			for x := range errCh {
-				log.Error(x)
-			}
-		}()
+		file, err := os.Open(config.Stream)
+		if err != nil {
+			log.Error("error opening stream at ", config.Stream, " ", err)
+		}
+		defer file.Close()
 
-		log.Info("capturing video...")
-		raspicam.Capture(v, conn, errCh)
-		log.Info("done")
+		buffer := make([]byte, 4096)
+
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			log.Error("error reading from file: ", err)
+		}
+		log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
+
+		n, err = monitorListener.Write(buffer)
+		if err != nil {
+			log.Fatalf("failed to send data: %s", err)
+		}
+		log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
 	}
 }

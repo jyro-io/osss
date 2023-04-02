@@ -1,4 +1,3 @@
-# .buildenv can contain:
 # DEV=[true/false] - this controls image build continuation flags, and automatic git cleanup/update
 # DOCKER_BUILD=[true/false] - Docker build flag
 

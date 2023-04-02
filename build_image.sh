@@ -9,6 +9,7 @@
 # bash build_image.sh camera
 
 APP=$1
+
 if [ -f ".buildenv" ]; then
   source .buildenv
 fi
@@ -45,12 +46,12 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     fi
   fi
 
-  # copy app config
+  # copy pi-gen config
   cp $APP/$APPCONFIG pi-gen/$APPCONFIG
 
-  # handle wifi credentials
+  # handle wifi credentials for camera
   if [ $APP = "monitor" ]; then
-    python credentials.py
+    python $APP/scripts/configure.py
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
     cat .wpaenv >> pi-gen/$APPCONFIG
   else
@@ -69,7 +70,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
   cd $ROOTDIR
 
-  # switch to app branch
+  # switch to app branch in pi-gen
   cd pi-gen
   git checkout $APPNAME
   if [ $DEV = false ]; then
@@ -84,10 +85,12 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
 
-  # more config for monitor
+  # misc configuration files
   if [ $APP = "monitor" ]; then
-    rm -v ./stage2/EXPORT*
     cp $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
+  elif [ $APP = "camera" ]; then
+    cp $ROOTDIR/$APP/etc/motion.conf $INSTALLDIRFILES
+    python $APP/scripts/configure.py
   fi
 
   # build image
