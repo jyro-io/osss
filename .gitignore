@@ -5,3 +5,4 @@ pi-gen/
 .wpaenv
 .python-version
 *.json
+.venv/

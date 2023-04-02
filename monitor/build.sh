@@ -9,6 +9,7 @@ else
   ARCHOPT="GOARCH=$ARCH"
 fi
 
+killall osss-monitor
 rm -v osss-monitor osss-monitor.json
 go mod tidy && \
 env GOOS=linux $ARCHOPT go build -o osss-monitor ./internal/app/monitor

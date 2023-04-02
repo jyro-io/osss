@@ -1,3 +1,3 @@
 logLevel: debug
-address: 0.0.0.0
-port: 7777
+cameraPort: 7777
+monitorPort: 7776
