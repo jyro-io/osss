@@ -5,7 +5,8 @@ import random, string
 config_path = os.path.join('pi-gen', 'monitor.config')
 with open(config_path, 'r') as handle:
   contents = handle.read()
-  contents = contents.replace('osssraspberry', input('Enter your chosen admin password: '))
+  contents = contents.replace('USERNAME', input('\nEnter your login username: '))
+  contents = contents.replace('PASSWORD', input('\nEnter your login password: '))
 with open(config_path, 'w') as handle:
   handle.write(contents)
 
