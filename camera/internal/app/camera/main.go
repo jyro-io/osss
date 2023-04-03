@@ -15,7 +15,6 @@ type Config struct {
 	LogLevel       string `yaml:"logLevel"`
 	MonitorAddress string `yaml:"address"`
 	Port           int    `yaml:"port"`
-	Stream         string `yaml:"stream"`
 }
 
 func getConfig(file string) Config {
@@ -67,25 +66,39 @@ func main() {
 	defer monitorListener.Close()
 	log.Info("connected to monitor on ", monitorAddr.String())
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("error getting current working directory:", err)
+		return
+	}
+
 	for {
-		file, err := os.Open(config.Stream)
+		files, err := os.ReadDir(cwd)
 		if err != nil {
-			log.Error("error opening stream at ", config.Stream, " ", err)
+			log.Error("error reading directory:", err)
+			return
 		}
-		defer file.Close()
+		for _, file := range files {
+			buffer := make([]byte, 4096)
 
-		buffer := make([]byte, 4096)
+			fileHandle, err := os.Open(file.Name())
+			if err != nil {
+				log.Error("error opening file:", err)
+				return
+			}
+			defer fileHandle.Close()
 
-		n, err := file.Read(buffer)
-		if err != nil && err != io.EOF {
-			log.Error("error reading from file: ", err)
+			n, err := fileHandle.Read(buffer)
+			if err != nil && err != io.EOF {
+				log.Error("error reading from file: ", err)
+			}
+			log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
+
+			n, err = monitorListener.Write(buffer)
+			if err != nil {
+				log.Fatalf("failed to send data: %s", err)
+			}
+			log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
 		}
-		log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
-
-		n, err = monitorListener.Write(buffer)
-		if err != nil {
-			log.Fatalf("failed to send data: %s", err)
-		}
-		log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
 	}
 }

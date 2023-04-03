@@ -39,7 +39,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     git clone git@github.com:rory-linehan/pi-gen.git
   else
     if [ $DEV = false ]; then
-      cd pi-gen
+      cd $ROOTDIR/pi-gen
       git clean -fd
       git restore .
       cd $ROOTDIR
@@ -47,21 +47,21 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
 
   # copy pi-gen config
-  cp $APP/$APPCONFIG pi-gen/$APPCONFIG
+  cp -v $APP/$APPCONFIG $ROOTDIR/pi-gen/$APPCONFIG
 
   # handle wifi credentials for camera
   if [ $APP = "monitor" ]; then
     cd $ROOTDIR
     python $APP/scripts/configure.py  # configure monitor
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
-    cat .wpaenv >> pi-gen/$APPCONFIG
+    cat .wpaenv >> $ROOTDIR/pi-gen/$APPCONFIG
   else
     echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
     exit 1
   fi
 
   # build app
-  cd $APP
+  cd $ROOTDIR/$APP
   if [ $APP = "monitor" ]; then
     source ".venv/bin/activate"
   fi
@@ -72,7 +72,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cd $ROOTDIR
 
   # switch to app branch in pi-gen
-  cd pi-gen
+  cd $ROOTDIR/pi-gen
   git checkout $APPNAME
   if [ $DEV = false ]; then
     git pull
@@ -81,19 +81,19 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
-  cp $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
-  cp $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
-  cp $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
 
   # misc configuration files
   if [ $APP = "monitor" ]; then
-    cp $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
+    cp -v $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
   elif [ $APP = "camera" ]; then
-    cp $ROOTDIR/$APP/etc/motion.conf $INSTALLDIRFILES
+    cp -v $ROOTDIR/$APP/etc/motion.conf $INSTALLDIRFILES
     cd $ROOTDIR
     python $APP/scripts/configure.py  # configure camera
-    cd pi-gen
+    cd $ROOTDIR/pi-gen
   fi
 
   # build image
