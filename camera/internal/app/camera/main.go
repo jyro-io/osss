@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -15,6 +16,7 @@ type Config struct {
 	LogLevel       string `yaml:"logLevel"`
 	MonitorAddress string `yaml:"monitorAddress"`
 	Port           int    `yaml:"port"`
+	VideoFormat    string `yaml:"videoFormat"`
 }
 
 func getConfig(file string) Config {
@@ -79,26 +81,27 @@ func main() {
 			return
 		}
 		for _, file := range files {
-			buffer := make([]byte, 4096)
+			buffer := make([]byte, 0)
+			if strings.Contains(file.Name(), config.VideoFormat) {
+				fileHandle, err := os.Open(file.Name())
+				if err != nil {
+					log.Error("error opening file:", err)
+					return
+				}
+				defer fileHandle.Close()
 
-			fileHandle, err := os.Open(file.Name())
-			if err != nil {
-				log.Error("error opening file:", err)
-				return
-			}
-			defer fileHandle.Close()
+				n, err := fileHandle.Read(buffer)
+				if err != nil && err != io.EOF {
+					log.Error("error reading from file: ", err)
+				}
+				log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
 
-			n, err := fileHandle.Read(buffer)
-			if err != nil && err != io.EOF {
-				log.Error("error reading from file: ", err)
+				n, err = monitorListener.Write(buffer)
+				if err != nil {
+					log.Fatalf("failed to send data: %s", err)
+				}
+				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
 			}
-			log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
-
-			n, err = monitorListener.Write(buffer)
-			if err != nil {
-				log.Fatalf("failed to send data: %s", err)
-			}
-			log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
 		}
 	}
 }

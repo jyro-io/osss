@@ -1,3 +1,4 @@
 logLevel: info
 monitorAddress: 192.168.0.10
 port: 7777
+videoFormat: mkv
