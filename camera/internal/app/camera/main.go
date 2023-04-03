@@ -13,7 +13,7 @@ import (
 
 type Config struct {
 	LogLevel       string `yaml:"logLevel"`
-	MonitorAddress string `yaml:"address"`
+	MonitorAddress string `yaml:"monitorAddress"`
 	Port           int    `yaml:"port"`
 }
 
