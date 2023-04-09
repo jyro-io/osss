@@ -54,6 +54,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     cd $ROOTDIR
     python $APP/scripts/configure.py  # configure monitor
   elif [ $APP = "camera" ] && [ -f .wpaenv ]; then
+    cd $ROOTDIR
     cat .wpaenv >> $ROOTDIR/pi-gen/$APPCONFIG
   else
     echo "error: wpa credentials (.wpaenv) not present, run 'bash build_image.sh monitor' first!"
