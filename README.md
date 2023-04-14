@@ -35,10 +35,10 @@ For the camera, you'll need:
 * PiSugar 3 battery
   * https://www.tindie.com/products/pisugar/pisugar3-battery-for-raspberry-pi-zero/
 * A case, unless you prefer to live life on the edge. 
-  We're currently 3D printing the PiSugar cases listed above, 
+  I'm currently 3D printing the PiSugar cases listed above, 
   and mounting the camera on the outside: https://github.com/PiSugar/PiSugar/tree/master/model2
 * RPi Camera
-  * We 3D printed this camera housing: https://www.thingiverse.com/thing:1707484
+  * I 3D printed this camera housing: https://www.thingiverse.com/thing:1707484
 
 ## Future Development 
 
