@@ -1,5 +1,7 @@
 # Open Source Security System
 
+## Note: this is unstable and currently under development 
+
 ## Overview
 
 This repository contains everything you need to configure
