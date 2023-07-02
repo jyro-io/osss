@@ -6,4 +6,5 @@ pi-gen/
 .python-version
 *.json
 .venv/
+venv/
 *.bak

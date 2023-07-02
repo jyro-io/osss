@@ -1,15 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"io"
 	"net"
 	"os"
-	"time"
-
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -41,11 +40,11 @@ func getConfig(file string) Config {
 }
 
 type Camera struct {
-	Address *net.UDPAddr
+	Address net.Addr
 	Buffer  []byte
 }
 
-func addCamera(addr *net.UDPAddr, cameras []Camera) []Camera {
+func addCamera(addr net.Addr, cameras []Camera) []Camera {
 	for _, camera := range cameras {
 		if camera.Address == addr {
 			return cameras
@@ -56,7 +55,7 @@ func addCamera(addr *net.UDPAddr, cameras []Camera) []Camera {
 	return cameras
 }
 
-func addDataToCameraBuffer(data []byte, addr *net.UDPAddr, cameras []Camera) []Camera {
+func addDataToCameraBuffer(data []byte, addr net.Addr, cameras []Camera) []Camera {
 	for index, camera := range cameras {
 		if camera.Address == addr {
 			cameras[index].Buffer = append(cameras[index].Buffer, data...)
@@ -78,6 +77,39 @@ func findLongestCameraBufferIndex(cameras []Camera) int {
 	return longestIndex
 }
 
+func handleConnection(connection net.Conn, cameras []Camera, monitorFeed *net.UDPConn) {
+	log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
+	longestBufferIndex := -1
+	for {
+		netData, err := bufio.NewReader(connection).ReadString('\n')
+		if err != nil {
+			log.Trace("failure while reading data: ", err)
+		}
+		if len(netData) > 0 {
+			log.Debug("received from client: ", string(netData))
+
+			// maybe add new camera
+			cameras = addCamera(connection.RemoteAddr(), cameras)
+
+			// write data to corresponding camera buffer
+			cameras = addDataToCameraBuffer([]byte(netData), connection.RemoteAddr(), cameras)
+
+			// find the longest camera buffer and write to monitor feed
+			longestBufferIndex = findLongestCameraBufferIndex(cameras)
+			if longestBufferIndex > -1 {
+				log.Debug("writing data to monitor feed: ", cameras[longestBufferIndex].Buffer)
+				n, err := monitorFeed.Write(cameras[longestBufferIndex].Buffer)
+				if err != nil {
+					log.Fatalf("failed to send data: %s", err)
+				}
+				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed", n))
+				cameras[longestBufferIndex].Buffer = []byte{}
+				longestBufferIndex = -1
+			}
+		}
+	}
+}
+
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -95,16 +127,17 @@ func main() {
 	log.SetLevel(level)
 
 	// set up camera listener
-	serverAddr := net.UDPAddr{
+	serverAddr := net.TCPAddr{
 		IP:   net.IPv4zero,
 		Port: config.CameraPort,
 	}
-	cameraListener, err := net.ListenUDP("udp", &serverAddr)
+	log.Info("started camera listener on ", serverAddr.String())
+	cameraListener, err := net.Listen("tcp", serverAddr.String())
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	defer cameraListener.Close()
-	log.Info("started camera listener on ", serverAddr.String())
 
 	// set up monitor feed
 	monitorAddr := net.UDPAddr{
@@ -113,45 +146,17 @@ func main() {
 	}
 	monitorFeed, err := net.DialUDP("udp", nil, &monitorAddr)
 	if err != nil {
-		log.Fatalf("failed to dial UDP: %s", err)
+		log.Fatalf("failed to dial TCP: %s", err)
 	}
-	defer monitorFeed.Close()
 	log.Info("started monitor feed on ", monitorAddr.String())
 
-	cameraBuffer := make([]byte, 1024)
 	cameras := []Camera{}
-	longestBufferIndex := -1
 	for {
-		err = cameraListener.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+		c, err := cameraListener.Accept()
 		if err != nil {
-			log.Fatal("error setting read deadline on camera listener: ", err)
-		}
-		n, addr, err := cameraListener.ReadFromUDP(cameraBuffer)
-		if err != nil {
-			log.Trace("error reading from camera listener: ", err)
+			log.Trace("failure while accepting camera connection: ", err)
 			continue
 		}
-		if n > 0 {
-			log.Debug(fmt.Sprintf("received %d bytes from %s", len(cameraBuffer[:n]), addr.String()))
-
-			// maybe add new camera
-			cameras = addCamera(addr, cameras)
-
-			// write data to corresponding camera buffer
-			cameras = addDataToCameraBuffer(cameraBuffer[:n], addr, cameras)
-
-			// find longest camera buffer and write to monitor feed
-			longestBufferIndex = findLongestCameraBufferIndex(cameras)
-			if longestBufferIndex > -1 {
-				log.Debug("writing data to monitor feed: ", cameras[longestBufferIndex].Buffer)
-				n, err = monitorFeed.Write(cameras[longestBufferIndex].Buffer)
-				if err != nil {
-					log.Fatalf("failed to send data: %s", err)
-				}
-				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
-				cameras[longestBufferIndex].Buffer = []byte{}
-				longestBufferIndex = -1
-			}
-		}
+		go handleConnection(c, cameras, monitorFeed)
 	}
 }

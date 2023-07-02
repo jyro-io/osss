@@ -68,7 +68,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
   bash build.sh arm
   if [ $APP = "monitor" ]; then
-    deactivate
+    source deactivate
   fi
   cd $ROOTDIR
 

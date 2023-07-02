@@ -56,16 +56,16 @@ func main() {
 	}
 	log.SetLevel(level)
 
-	// set up monitor server
-	monitorAddr := net.UDPAddr{
+	// open connection to monitor server
+	monitorAddr := net.TCPAddr{
 		IP:   net.ParseIP(config.MonitorAddress),
 		Port: config.Port,
 	}
-	monitorListener, err := net.DialUDP("udp", nil, &monitorAddr)
+	monitor, err := net.Dial("tcp", monitorAddr.String())
 	if err != nil {
-		log.Fatalf("failed to dial UDP: %s", err)
+		log.Fatalf("failed to dial TCP: %s", err)
 	}
-	defer monitorListener.Close()
+	defer monitor.Close()
 	log.Info("connected to monitor on ", monitorAddr.String())
 
 	cwd, err := os.Getwd()
@@ -96,7 +96,7 @@ func main() {
 				}
 				log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
 
-				n, err = monitorListener.Write(buffer)
+				n, err = monitor.Write(buffer)
 				if err != nil {
 					log.Fatalf("failed to send data: %s", err)
 				}
