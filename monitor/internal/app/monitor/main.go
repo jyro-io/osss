@@ -164,6 +164,5 @@ func main() {
 				cameraRoutines <- -1
 			}(c)
 		}
-		time.Sleep(50 * time.Millisecond)
 	}
 }
