@@ -42,4 +42,5 @@ For the camera, you'll need:
 
 ## Future Development 
 
-* Add support for capturing video clips on the monitor and saving to a mounted USB drive.
+* Monitor: Add support for capturing video clips on the monitor and saving to a mounted USB drive. [Issue](https://github.com/rory-linehan/osss/issues/1)
+* Camera: Use gocv instead of Motion for motion-triggered video capture. [Issue](https://github.com/rory-linehan/osss/issues/2)
