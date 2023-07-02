@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -101,5 +102,6 @@ func main() {
 				}
 			}
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
