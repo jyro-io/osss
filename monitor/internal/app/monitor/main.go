@@ -112,7 +112,7 @@ func main() {
 	var cameraMutex sync.Mutex
 	var cameraRoutines = make(chan int)
 	// call goroutine that flushes camera buffers
-	go func(cameraRoutines chan int) {
+	go func() {
 		for {
 			// wait for all goroutines to finish,
 			// then flush camera buffers
@@ -136,7 +136,7 @@ func main() {
 			}
 			time.Sleep(1 * time.Second)
 		}
-	}(cameraRoutines)
+	}()
 	// perpetual loop for accepting camera connections
 	for {
 		c, err := cameraListener.Accept()
