@@ -46,6 +46,14 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     fi
   fi
 
+  # switch to app branch in pi-gen
+  cd $ROOTDIR/pi-gen
+  git checkout $APPNAME
+  if [ $DEV = false ]; then
+    git pull
+  fi
+  cd $ROOTDIR
+
   # copy pi-gen config
   cp -v $APP/$APPCONFIG $ROOTDIR/pi-gen/$APPCONFIG
 
@@ -64,7 +72,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # build app
   cd $ROOTDIR/$APP
   if [ $APP = "monitor" ]; then
-    source ".venv/bin/activate"
+    source "venv/bin/activate"
   fi
   bash build.sh arm
   if [ $APP = "monitor" ]; then
@@ -72,20 +80,13 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
   cd $ROOTDIR
 
-  # switch to app branch in pi-gen
-  cd $ROOTDIR/pi-gen
-  git checkout $APPNAME
-  if [ $DEV = false ]; then
-    git pull
-  fi
-
   # setup configuration files
   INSTALLDIRFILES=./$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
-  printf "IMG_NAME=$APPNAME\n" >> $APPCONFIG
+  printf "IMG_NAME=$APPNAME\n" >> $APP/$APPCONFIG
 
   # misc configuration files
   if [ $APP = "monitor" ]; then
@@ -98,12 +99,12 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   fi
 
   # build image
+  cd $ROOTDIR/pi-gen
   if [ $DEV = true ]; then
     CONTINUE=1 PRESERVE_CONTAINER=1 $BUILD -c $APPCONFIG
   else
     $BUILD -c $APPCONFIG
   fi
-  cd $ROOTDIR
 
   # write image to sd card
   if [ ! -f "/usr/bin/rpi-imager" ]; then
