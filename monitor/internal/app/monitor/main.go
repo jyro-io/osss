@@ -111,7 +111,7 @@ func main() {
 	var cameras []Camera
 	var cameraMutex sync.Mutex
 	var cameraRoutines = make(chan int)
-	// call goroutine that flushes camera buffers
+	// call perpetual goroutine that flushes camera buffers every second
 	go func() {
 		for {
 			// wait for all goroutines to finish,
