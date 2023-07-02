@@ -68,14 +68,8 @@ func main() {
 	defer monitor.Close()
 	log.Info("connected to monitor on ", monitorAddr.String())
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println("error getting current working directory:", err)
-		return
-	}
-
 	for {
-		files, err := os.ReadDir(cwd)
+		files, err := os.ReadDir("/home/admin/videos")
 		if err != nil {
 			log.Error("error reading directory:", err)
 			return
@@ -101,6 +95,10 @@ func main() {
 					log.Fatalf("failed to send data: %s", err)
 				}
 				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
+				err = os.Remove(file.Name())
+				if err != nil {
+					log.Fatalf("failed to delete video file: %s", err)
+				}
 			}
 		}
 	}

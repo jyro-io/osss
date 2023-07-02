@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # arm, amd64
-ARCH=$1
+ARCH=${1:-amd64}
 
 if [ $ARCH = "arm" ]; then
   ARCHOPT="GOARCH=$ARCH GOARM=5"

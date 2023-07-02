@@ -9,6 +9,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
+	"time"
 )
 
 type Config struct {
@@ -65,51 +67,6 @@ func addDataToCameraBuffer(data []byte, addr net.Addr, cameras []Camera) []Camer
 	return cameras
 }
 
-func findLongestCameraBufferIndex(cameras []Camera) int {
-	longestIndex := -1
-	longestBuffer := 0
-	for index, camera := range cameras {
-		if len(camera.Buffer) > longestBuffer {
-			longestIndex = index
-			longestBuffer = len(camera.Buffer)
-		}
-	}
-	return longestIndex
-}
-
-func handleConnection(connection net.Conn, cameras []Camera, monitorFeed *net.UDPConn) {
-	log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
-	longestBufferIndex := -1
-	for {
-		netData, err := bufio.NewReader(connection).ReadString('\n')
-		if err != nil {
-			log.Trace("failure while reading data: ", err)
-		}
-		if len(netData) > 0 {
-			log.Debug("received from client: ", string(netData))
-
-			// maybe add new camera
-			cameras = addCamera(connection.RemoteAddr(), cameras)
-
-			// write data to corresponding camera buffer
-			cameras = addDataToCameraBuffer([]byte(netData), connection.RemoteAddr(), cameras)
-
-			// find the longest camera buffer and write to monitor feed
-			longestBufferIndex = findLongestCameraBufferIndex(cameras)
-			if longestBufferIndex > -1 {
-				log.Debug("writing data to monitor feed: ", cameras[longestBufferIndex].Buffer)
-				n, err := monitorFeed.Write(cameras[longestBufferIndex].Buffer)
-				if err != nil {
-					log.Fatalf("failed to send data: %s", err)
-				}
-				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed", n))
-				cameras[longestBufferIndex].Buffer = []byte{}
-				longestBufferIndex = -1
-			}
-		}
-	}
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -146,17 +103,67 @@ func main() {
 	}
 	monitorFeed, err := net.DialUDP("udp", nil, &monitorAddr)
 	if err != nil {
-		log.Fatalf("failed to dial TCP: %s", err)
+		log.Fatalf("failed to dial UDP: %s", err)
 	}
+	defer monitorFeed.Close()
 	log.Info("started monitor feed on ", monitorAddr.String())
 
-	cameras := []Camera{}
+	var cameras []Camera
+	var cameraMutex sync.Mutex
+	var cameraRoutines = make(chan int)
+	// call goroutine that flushes camera buffers
+	go func(cameraRoutines chan int) {
+		for {
+			// wait for all goroutines to finish,
+			// then flush camera buffers
+			numGoroutines := 0
+			for diff := range cameraRoutines {
+				numGoroutines += diff
+				if numGoroutines == 0 {
+					log.Debug("flushing camera buffers: ", cameras)
+					// flush camera buffers to monitorFeed
+					for index, camera := range cameras {
+						if len(camera.Buffer) > 0 {
+							n, err := monitorFeed.Write(camera.Buffer)
+							if err != nil {
+								log.Fatalf("failed to send data: %s", err)
+							}
+							log.Debug(fmt.Sprintf("sent %d bytes to monitor feed", n))
+							cameras[index].Buffer = []byte{}
+						}
+					}
+				}
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}(cameraRoutines)
+	// perpetual loop for accepting camera connections
 	for {
 		c, err := cameraListener.Accept()
-		if err != nil {
-			log.Trace("failure while accepting camera connection: ", err)
-			continue
+		if err != nil && err != io.EOF {
+			log.Fatal("failure accepting connection on camera listener: ", err)
+		} else {
+			cameraRoutines <- +1
+			go func(connection net.Conn) {
+				log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
+				defer connection.Close()
+				netData, err := bufio.NewReader(connection).ReadString('\n')
+				if err != nil && err != io.EOF {
+					log.Fatal("failure while reading data: ", err)
+				} else {
+					if len(netData) > 0 {
+						log.Debug("received from client: ", string(netData))
+						cameraMutex.Lock()
+						// maybe add new camera
+						cameras = addCamera(connection.RemoteAddr(), cameras)
+						// write data to corresponding camera buffer
+						cameras = addDataToCameraBuffer([]byte(netData), connection.RemoteAddr(), cameras)
+						cameraMutex.Unlock()
+					}
+				}
+				cameraRoutines <- -1
+			}(c)
 		}
-		go handleConnection(c, cameras, monitorFeed)
+		time.Sleep(50 * time.Millisecond)
 	}
 }

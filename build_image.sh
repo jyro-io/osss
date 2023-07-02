@@ -72,7 +72,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   # build app
   cd $ROOTDIR/$APP
   if [ $APP = "monitor" ]; then
-    source "venv/bin/activate"
+    source ".venv/bin/activate"
   fi
   bash build.sh arm
   if [ $APP = "monitor" ]; then
