@@ -86,7 +86,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cp -v $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
-  printf "IMG_NAME=$APPNAME\n" >> $APP/$APPCONFIG
+  printf "IMG_NAME=$APPNAME\n" >> $ROOTDIR/pi-gen/$APPCONFIG
 
   # misc configuration files
   if [ $APP = "monitor" ]; then
