@@ -81,7 +81,7 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   cd $ROOTDIR
 
   # setup configuration files
-  INSTALLDIRFILES=./$APPNAME/00-install/files/
+  INSTALLDIRFILES=$ROOTDIR/pi-gen/$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
