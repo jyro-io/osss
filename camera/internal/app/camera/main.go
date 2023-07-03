@@ -80,7 +80,8 @@ func main() {
 		for _, file := range files {
 			buffer := make([]byte, 0)
 			if strings.Contains(file.Name(), config.VideoFormat) {
-				fileHandle, err := os.Open(filepath.Join(videosDir, file.Name()))
+				videoFile := filepath.Join(videosDir, file.Name())
+				fileHandle, err := os.Open(videoFile)
 				if err != nil {
 					log.Error("error opening file:", err)
 					return
@@ -98,7 +99,7 @@ func main() {
 					log.Fatalf("failed to send data: %s", err)
 				}
 				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
-				err = os.Remove(file.Name())
+				err = os.Remove(videoFile)
 				if err != nil {
 					log.Fatalf("failed to delete video file: %s", err)
 				}
