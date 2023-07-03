@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -70,7 +71,8 @@ func main() {
 	log.Info("connected to monitor on ", monitorAddr.String())
 
 	for {
-		files, err := os.ReadDir("/home/admin/videos")
+		videosDir := "/home/admin/videos"
+		files, err := os.ReadDir(videosDir)
 		if err != nil {
 			log.Error("error reading directory:", err)
 			return
@@ -78,7 +80,7 @@ func main() {
 		for _, file := range files {
 			buffer := make([]byte, 0)
 			if strings.Contains(file.Name(), config.VideoFormat) {
-				fileHandle, err := os.Open(file.Name())
+				fileHandle, err := os.Open(filepath.Join(videosDir, file.Name()))
 				if err != nil {
 					log.Error("error opening file:", err)
 					return

@@ -83,7 +83,7 @@ func main() {
 	}
 	log.SetLevel(level)
 
-	// set up camera listener
+	// set up camera listener server
 	serverAddr := net.TCPAddr{
 		IP:   net.IPv4zero,
 		Port: config.CameraPort,
@@ -96,7 +96,7 @@ func main() {
 	}
 	defer cameraListener.Close()
 
-	// set up monitor feed
+	// set up monitor live feed
 	monitorAddr := net.UDPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
 		Port: config.MonitorPort,
