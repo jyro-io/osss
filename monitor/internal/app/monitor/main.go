@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -69,13 +67,6 @@ func addDataToCameraBuffer(data gocv.Mat, addr net.Addr, cameras []Camera) []Cam
 	return cameras
 }
 
-func receiveMotion(conn net.Conn) (gocv.Mat, error) {
-	decoder := json.NewDecoder(conn)
-	var m gocv.Mat
-	err := decoder.Decode(&m)
-	return m, err
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -105,18 +96,6 @@ func main() {
 	}
 	defer cameraListener.Close()
 
-	// set up monitor live feed
-	monitorAddr := net.UDPAddr{
-		IP:   net.ParseIP("127.0.0.1"),
-		Port: config.MonitorPort,
-	}
-	monitorFeed, err := net.DialUDP("udp", nil, &monitorAddr)
-	if err != nil {
-		log.Fatalf("failed to dial UDP: %s", err)
-	}
-	defer monitorFeed.Close()
-	log.Info("started monitor feed on ", monitorAddr.String())
-
 	var cameras []Camera
 	var cameraMutex sync.Mutex
 	var cameraRoutines = make(chan int)
@@ -131,17 +110,21 @@ func main() {
 			for diff := range cameraRoutines {
 				numGoroutines += diff
 				if numGoroutines == 0 {
-					log.Debug("flushing camera buffers: ", cameras)
-					// flush camera buffers to monitorFeed
-					for index, camera := range cameras {
+					log.Debug("flushing camera buffers...")
+					// flush camera buffers to monitor feed window
+					for cindex, camera := range cameras {
 						if len(camera.Buffer) > 0 {
-							for _, motion := range camera.Buffer {
-								defer motion.Close()
+							log.Debug("flushing camera ", cindex)
+							for mindex, motion := range camera.Buffer {
+								log.Debug("flushing motion ", mindex)
 								window.IMShow(motion)
+								if window.WaitKey(1) >= 0 {
+									break
+								}
 								// write to mounted USB disk here
 							}
 						}
-						cameras[index].Buffer = []gocv.Mat{}
+						cameras[cindex].Buffer = []gocv.Mat{}
 					}
 				}
 			}
@@ -158,18 +141,24 @@ func main() {
 			go func(connection net.Conn) {
 				log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
 				defer connection.Close()
-				img, err := receiveMotion(connection)
-				netData, err := bufio.NewReader(connection).ReadString('\n')
+
+				buffer := []byte{}
+				_, err := c.Read(buffer)
 				if err != nil && err != io.EOF {
-					log.Fatal("failure while reading data: ", err)
-				} else {
-					if len(netData) > 0 {
-						log.Debug("received from client: ", string(netData))
+					log.Fatal("failure reading bytes from connection: ", err)
+				}
+
+				if len(buffer) > 0 {
+					motion := gocv.Mat{}
+					gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
+					if err != nil && err != io.EOF {
+						log.Fatal("failure while reading data: ", err)
+					} else {
 						cameraMutex.Lock()
 						// maybe add new camera
 						cameras = addCamera(connection.RemoteAddr(), cameras)
 						// write data to corresponding camera buffer
-						cameras = addDataToCameraBuffer(img, connection.RemoteAddr(), cameras)
+						cameras = addDataToCameraBuffer(motion, connection.RemoteAddr(), cameras)
 						cameraMutex.Unlock()
 					}
 				}

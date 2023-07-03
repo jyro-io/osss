@@ -20,7 +20,7 @@ The build process has only been tested on Ubuntu 22.
 To build the software, follow these steps:
 
 * Build/Install gocv: https://gocv.io/getting-started/linux/
-* Install for test: `sudo apt-get install libcanberra-gtk-module`
+* Install test dependencies: `sudo apt-get install libcanberra-gtk-module`
 * The monitor application needs to be built first: `bash build_image.sh monitor`
 * Followed by the camera application: `bash build_image.sh camera`
 

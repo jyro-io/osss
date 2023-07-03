@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"gocv.io/x/gocv"
@@ -105,11 +104,6 @@ type Message struct {
 	Time int64
 }
 
-func sendMotion(conn net.Conn, m gocv.Mat) error {
-	encoder := json.NewEncoder(conn)
-	return encoder.Encode(m)
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -140,7 +134,7 @@ func main() {
 
 	for {
 		motion := detectMotion()
-		err := sendMotion(monitor, motion)
+		_, err := monitor.Write(motion.ToBytes())
 		if err != nil {
 			log.Fatalf("failure while sending motion data: %s", err)
 		}

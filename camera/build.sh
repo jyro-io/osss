@@ -9,8 +9,6 @@ else
   ARCHOPT="GOARCH=$ARCH"
 fi
 
-sudo apt install -y libopencv-dev
-
 killall osss-camera
 killall osss-monitor
 

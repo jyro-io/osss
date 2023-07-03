@@ -25,13 +25,13 @@ def succeed(camera):
   sys.exit(0)
 
 
-print('loading config...')
-parsed_yaml = parse_yaml_file('configs/config-dev.yaml')
-
 print('running camera tests...')
 
+print('loading monitor config...')
+monitor_yaml = parse_yaml_file('../monitor/configs/config-dev.yaml')
+
 monitor_log_write = open('../monitor/osss-monitor.json', 'w')
-# start monitor in the background
+print('start monitor in the background...')
 monitor = subprocess.Popen(
   [
     '../monitor/osss-monitor',
@@ -43,8 +43,12 @@ monitor = subprocess.Popen(
 )
 time.sleep(1)  # wait for start
 
+print('loading camera config...')
+camera_yaml = parse_yaml_file('configs/config-dev.yaml')
+
 camera_log_write = open('osss-camera.json', 'w')
 # start camera in the background
+print('start camera in the background...')
 camera = subprocess.Popen(
   [
     './osss-camera',
@@ -55,12 +59,7 @@ camera = subprocess.Popen(
   stderr=camera_log_write
 )
 
-# connect to camera first to avoid potential race conditions
-cameraSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-cameraFeed = ('127.0.0.1', parsed_yaml['port'])
-cameraSock.bind(cameraFeed)
-
-fail(camera)
+#fail(camera)
 
 # # send data to camera listener
 # # from two simulated cameras
