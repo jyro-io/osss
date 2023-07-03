@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"gocv.io/x/gocv"
 	"gopkg.in/yaml.v3"
 	"io"
 	"net"
@@ -43,7 +45,7 @@ func getConfig(file string) Config {
 
 type Camera struct {
 	Address net.Addr
-	Buffer  []byte
+	Buffer  []gocv.Mat
 }
 
 func addCamera(addr net.Addr, cameras []Camera) []Camera {
@@ -52,19 +54,26 @@ func addCamera(addr net.Addr, cameras []Camera) []Camera {
 			return cameras
 		}
 	}
-	cameras = append(cameras, Camera{Address: addr, Buffer: make([]byte, 1024)})
+	cameras = append(cameras, Camera{Address: addr, Buffer: []gocv.Mat{}})
 	log.Debug("added camera: ", addr)
 	return cameras
 }
 
-func addDataToCameraBuffer(data []byte, addr net.Addr, cameras []Camera) []Camera {
+func addDataToCameraBuffer(data gocv.Mat, addr net.Addr, cameras []Camera) []Camera {
 	for index, camera := range cameras {
 		if camera.Address == addr {
-			cameras[index].Buffer = append(cameras[index].Buffer, data...)
+			cameras[index].Buffer = append(cameras[index].Buffer, data)
 			log.Debug("added data to camera buffer: ", addr)
 		}
 	}
 	return cameras
+}
+
+func receiveMotion(conn net.Conn) (gocv.Mat, error) {
+	decoder := json.NewDecoder(conn)
+	var m gocv.Mat
+	err := decoder.Decode(&m)
+	return m, err
 }
 
 func main() {
@@ -111,7 +120,9 @@ func main() {
 	var cameras []Camera
 	var cameraMutex sync.Mutex
 	var cameraRoutines = make(chan int)
-	// call perpetual goroutine that flushes camera buffers every second
+	window := gocv.NewWindow("Camera Monitor")
+	defer window.Close()
+	// call perpetual goroutine that flushes camera buffers
 	go func() {
 		for {
 			// wait for all goroutines to finish,
@@ -124,17 +135,17 @@ func main() {
 					// flush camera buffers to monitorFeed
 					for index, camera := range cameras {
 						if len(camera.Buffer) > 0 {
-							n, err := monitorFeed.Write(camera.Buffer)
-							if err != nil {
-								log.Fatalf("failed to send data: %s", err)
+							for _, motion := range camera.Buffer {
+								defer motion.Close()
+								window.IMShow(motion)
+								// write to mounted USB disk here
 							}
-							log.Debug(fmt.Sprintf("sent %d bytes to monitor feed", n))
-							cameras[index].Buffer = []byte{}
 						}
+						cameras[index].Buffer = []gocv.Mat{}
 					}
 				}
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	// perpetual loop for accepting camera connections
@@ -147,6 +158,7 @@ func main() {
 			go func(connection net.Conn) {
 				log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
 				defer connection.Close()
+				img, err := receiveMotion(connection)
 				netData, err := bufio.NewReader(connection).ReadString('\n')
 				if err != nil && err != io.EOF {
 					log.Fatal("failure while reading data: ", err)
@@ -157,7 +169,7 @@ func main() {
 						// maybe add new camera
 						cameras = addCamera(connection.RemoteAddr(), cameras)
 						// write data to corresponding camera buffer
-						cameras = addDataToCameraBuffer([]byte(netData), connection.RemoteAddr(), cameras)
+						cameras = addDataToCameraBuffer(img, connection.RemoteAddr(), cameras)
 						cameraMutex.Unlock()
 					}
 				}

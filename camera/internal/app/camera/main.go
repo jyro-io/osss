@@ -1,24 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"fmt"
+	log "github.com/sirupsen/logrus"
+	"gocv.io/x/gocv"
+	"gopkg.in/yaml.v3"
+	"image"
+	"image/color"
 	"io"
 	"net"
 	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
 	LogLevel       string `yaml:"logLevel"`
 	MonitorAddress string `yaml:"monitorAddress"`
 	Port           int    `yaml:"port"`
-	VideoFormat    string `yaml:"videoFormat"`
 }
 
 func getConfig(file string) Config {
@@ -40,6 +38,76 @@ func getConfig(file string) Config {
 	}
 
 	return c
+}
+
+func detectMotion() gocv.Mat {
+	webcam, _ := gocv.VideoCaptureDevice(0) // Open the first camera device
+	defer webcam.Close()
+
+	imgDelta := gocv.NewMat()
+	defer imgDelta.Close()
+
+	imgThresh := gocv.NewMat()
+	defer imgThresh.Close()
+
+	mog2 := gocv.NewBackgroundSubtractorMOG2()
+	defer mog2.Close()
+
+	status := "Ready"
+
+	for {
+		img := gocv.NewMat()
+		defer img.Close()
+
+		if ok := webcam.Read(&img); !ok {
+			continue
+		}
+		if img.Empty() {
+			continue
+		}
+
+		status = "Ready"
+		statusColor := color.RGBA{0, 255, 0, 0}
+
+		// first phase of cleaning up image, obtain foreground only
+		mog2.Apply(img, &imgDelta)
+
+		// remaining cleanup of the image to use for finding contours.
+		// first use threshold
+		gocv.Threshold(imgDelta, &imgThresh, 25, 255, gocv.ThresholdBinary)
+
+		// then dilate
+		kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
+		gocv.Dilate(imgThresh, &imgThresh, kernel)
+
+		contours := gocv.FindContours(imgThresh, gocv.RetrievalExternal, gocv.ChainApproxSimple)
+		for i := 0; i < contours.Size(); i++ {
+			area := gocv.ContourArea(contours.At(i))
+			if area < 3000.0 {
+				continue
+			}
+
+			status = "Motion detected"
+			statusColor = color.RGBA{255, 0, 0, 0}
+			rect := gocv.BoundingRect(contours.At(i))
+			gocv.Rectangle(&img, rect, color.RGBA{255, 0, 0, 0}, 2)
+		}
+
+		gocv.PutText(&img, status, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
+
+		return img
+	}
+}
+
+type Message struct {
+	Name string
+	Body string
+	Time int64
+}
+
+func sendMotion(conn net.Conn, m gocv.Mat) error {
+	encoder := json.NewEncoder(conn)
+	return encoder.Encode(m)
 }
 
 func main() {
@@ -71,40 +139,10 @@ func main() {
 	log.Info("connected to monitor on ", monitorAddr.String())
 
 	for {
-		videosDir := "/home/admin/videos"
-		files, err := os.ReadDir(videosDir)
+		motion := detectMotion()
+		err := sendMotion(monitor, motion)
 		if err != nil {
-			log.Error("error reading directory:", err)
-			return
+			log.Fatalf("failure while sending motion data: %s", err)
 		}
-		for _, file := range files {
-			buffer := make([]byte, 0)
-			if strings.Contains(file.Name(), config.VideoFormat) {
-				videoFile := filepath.Join(videosDir, file.Name())
-				fileHandle, err := os.Open(videoFile)
-				if err != nil {
-					log.Error("error opening file:", err)
-					return
-				}
-				defer fileHandle.Close()
-
-				n, err := fileHandle.Read(buffer)
-				if err != nil && err != io.EOF {
-					log.Error("error reading from file: ", err)
-				}
-				log.Debug(fmt.Sprintf("read %d bytes from stream: %s", n, buffer))
-
-				n, err = monitor.Write(buffer)
-				if err != nil {
-					log.Fatalf("failed to send data: %s", err)
-				}
-				log.Debug(fmt.Sprintf("sent %d bytes to monitor feed: %s", n, &monitorAddr))
-				err = os.Remove(videoFile)
-				if err != nil {
-					log.Fatalf("failed to delete video file: %s", err)
-				}
-			}
-		}
-		time.Sleep(1 * time.Second)
 	}
 }

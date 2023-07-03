@@ -69,15 +69,11 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     exit 1
   fi
 
-  # build app
-  cd $ROOTDIR/$APP
-  if [ $APP = "monitor" ]; then
-    source ".venv/bin/activate"
-  fi
+  # build/test camera and monitor
+  cd $ROOTDIR/camera
+  source ".venv/bin/activate"
   bash build.sh arm
-  if [ $APP = "monitor" ]; then
-    source deactivate
-  fi
+  source deactivate
   cd $ROOTDIR
 
   # setup configuration files
@@ -92,7 +88,6 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
   if [ $APP = "monitor" ]; then
     cp -v $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
   elif [ $APP = "camera" ]; then
-    cp -v $ROOTDIR/$APP/etc/motion.conf $INSTALLDIRFILES
     cd $ROOTDIR
     python $APP/scripts/configure.py  # configure camera
     cd $ROOTDIR/pi-gen
