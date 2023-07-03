@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -57,10 +58,10 @@ func addCamera(addr net.Addr, cameras []Camera) []Camera {
 	return cameras
 }
 
-func addDataToCameraBuffer(data gocv.Mat, addr net.Addr, cameras []Camera) []Camera {
+func addDataToCameraBuffer(motion gocv.Mat, addr net.Addr, cameras []Camera) []Camera {
 	for index, camera := range cameras {
 		if camera.Address == addr {
-			cameras[index].Buffer = append(cameras[index].Buffer, data)
+			cameras[index].Buffer = append(cameras[index].Buffer, motion)
 			log.Debug("added data to camera buffer: ", addr)
 		}
 	}
@@ -118,9 +119,6 @@ func main() {
 							for mindex, motion := range camera.Buffer {
 								log.Debug("flushing motion ", mindex)
 								window.IMShow(motion)
-								if window.WaitKey(1) >= 0 {
-									break
-								}
 								// write to mounted USB disk here
 							}
 						}
@@ -142,15 +140,15 @@ func main() {
 				log.Debug(fmt.Sprintf("serving camera %s", connection.RemoteAddr().String()))
 				defer connection.Close()
 
-				var buffer []byte
-				_, err := c.Read(buffer)
+				var buffer bytes.Buffer
+				_, err := c.Read(buffer.Bytes())
 				if err != nil && err != io.EOF {
 					log.Fatal("failure reading bytes from connection: ", err)
 				}
 
-				if len(buffer) > 0 {
+				if len(buffer.Bytes()) > 0 {
 					motion := gocv.Mat{}
-					err := gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
+					err := gocv.IMDecodeIntoMat(buffer.Bytes(), gocv.IMReadUnchanged, &motion)
 					if err != nil {
 						log.Fatal("failure while decoding bytes: ", err)
 					} else {
