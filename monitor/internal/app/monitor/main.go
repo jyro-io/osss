@@ -128,7 +128,7 @@ func main() {
 					}
 				}
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 	// perpetual loop for accepting camera connections
@@ -139,10 +139,10 @@ func main() {
 		} else {
 			cameraRoutines <- +1
 			go func(connection net.Conn) {
-				log.Info(fmt.Sprintf("serving %s", connection.RemoteAddr().String()))
+				log.Debug(fmt.Sprintf("serving camera %s", connection.RemoteAddr().String()))
 				defer connection.Close()
 
-				buffer := []byte{}
+				var buffer []byte
 				_, err := c.Read(buffer)
 				if err != nil && err != io.EOF {
 					log.Fatal("failure reading bytes from connection: ", err)
@@ -150,9 +150,9 @@ func main() {
 
 				if len(buffer) > 0 {
 					motion := gocv.Mat{}
-					gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
-					if err != nil && err != io.EOF {
-						log.Fatal("failure while reading data: ", err)
+					err := gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
+					if err != nil {
+						log.Fatal("failure while decoding bytes: ", err)
 					} else {
 						cameraMutex.Lock()
 						// maybe add new camera

@@ -59,6 +59,9 @@ camera = subprocess.Popen(
   stderr=camera_log_write
 )
 
+while True:
+  time.sleep(1)
+
 #fail(camera)
 
 # # send data to camera listener

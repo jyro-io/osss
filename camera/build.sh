@@ -9,9 +9,6 @@ else
   ARCHOPT="GOARCH=$ARCH"
 fi
 
-killall osss-camera
-killall osss-monitor
-
 rm -v \
 osss-camera \
 osss-camera.json \
@@ -24,5 +21,10 @@ cd ../camera
 
 if ! python test/camera.py ; then
   printf "tests failed\n"
+  killall osss-camera
+  killall osss-monitor
   exit 1
 fi
+
+killall osss-camera
+killall osss-monitor

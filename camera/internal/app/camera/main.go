@@ -98,12 +98,6 @@ func detectMotion() gocv.Mat {
 	}
 }
 
-type Message struct {
-	Name string
-	Body string
-	Time int64
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -134,6 +128,7 @@ func main() {
 
 	for {
 		motion := detectMotion()
+		log.Debug("sending motion event to monitor...")
 		_, err := monitor.Write(motion.ToBytes())
 		if err != nil {
 			log.Fatalf("failure while sending motion data: %s", err)
