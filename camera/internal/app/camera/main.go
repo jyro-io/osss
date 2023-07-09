@@ -52,7 +52,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 	defer imgThresh.Close()
 	mog2 := gocv.NewBackgroundSubtractorMOG2()
 	defer mog2.Close()
-	found_motion := false
+	foundMotion := false
 
 	for {
 		if ok := webcam.Read(&img); !ok {
@@ -84,7 +84,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		for i := 0; i < contours.Size(); i++ {
 			area := gocv.ContourArea(contours.At(i))
 			if area >= config.MinimumMotionArea {
-				found_motion = true
+				foundMotion = true
 				statusColor = color.RGBA{255, 0, 0, 0}
 				gocv.DrawContours(&img, contours, i, statusColor, 2)
 				rect := gocv.BoundingRect(contours.At(i))
@@ -95,7 +95,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 
 		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
-		if found_motion {
+		if foundMotion {
 			break
 		} else {
 			img = gocv.NewMat()
