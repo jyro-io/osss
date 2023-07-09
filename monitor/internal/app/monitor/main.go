@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	Debug       bool   `yaml:"debug"`
 	LogLevel    string `yaml:"logLevel"`
 	Address     string `yaml:"address"`
 	CameraPort  int    `yaml:"cameraPort"`
@@ -66,15 +67,6 @@ func addDataToCameraBuffer(motion gocv.Mat, addr net.Addr, cameras []Camera) []C
 	return cameras
 }
 
-func hasNonZero(bs []byte) bool {
-	for _, b := range bs {
-		if b != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -120,15 +112,15 @@ func main() {
 				if numGoroutines == 0 {
 					log.Debug("flushing camera buffers...")
 					// flush camera buffers to monitor feed window
-					for cindex, camera := range cameras {
+					for cIndex, camera := range cameras {
 						log.Debug("flushing camera ", camera.Address)
-						for mindex, motion := range camera.Buffer {
-							log.Debug("flushing motion event ", mindex)
+						for mIndex, motion := range camera.Buffer {
+							log.Debug("flushing motion event ", mIndex)
 							window.IMShow(motion)
-							window.WaitKey(10000)
+							window.WaitKey(1000)
 							// write to mounted USB disk here
 						}
-						cameras[cindex].Buffer = []gocv.Mat{}
+						cameras[cIndex].Buffer = []gocv.Mat{}
 					}
 				}
 			}
