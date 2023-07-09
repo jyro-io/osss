@@ -13,9 +13,12 @@ import (
 )
 
 type Config struct {
-	LogLevel       string `yaml:"logLevel"`
-	MonitorAddress string `yaml:"monitorAddress"`
-	Port           int    `yaml:"port"`
+	Debug             bool    `yaml:"debug"`
+	LogLevel          string  `yaml:"logLevel"`
+	MonitorAddress    string  `yaml:"monitorAddress"`
+	Port              int     `yaml:"port"`
+	CameraName        string  `yaml:"cameraName"`
+	MinimumMotionArea float64 `yaml:"minimumMotionArea"`
 }
 
 func getConfig(file string) Config {
@@ -39,24 +42,13 @@ func getConfig(file string) Config {
 	return c
 }
 
-func detectMotion() gocv.Mat {
-	webcam, _ := gocv.VideoCaptureDevice(0) // Open the first camera device
-	defer webcam.Close()
-
-	imgDelta := gocv.NewMat()
-	defer imgDelta.Close()
-
-	imgThresh := gocv.NewMat()
-	defer imgThresh.Close()
-
-	mog2 := gocv.NewBackgroundSubtractorMOG2()
-	defer mog2.Close()
-
-	status := "Ready"
+func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
+	img := gocv.NewMat()
 
 	for {
-		img := gocv.NewMat()
-		defer img.Close()
+		imgDelta := gocv.NewMat()
+		imgThresh := gocv.NewMat()
+		mog2 := gocv.NewBackgroundSubtractorMOG2()
 
 		if ok := webcam.Read(&img); !ok {
 			continue
@@ -65,7 +57,6 @@ func detectMotion() gocv.Mat {
 			continue
 		}
 
-		status = "Ready"
 		statusColor := color.RGBA{0, 255, 0, 0}
 
 		// first phase of cleaning up image, obtain foreground only
@@ -78,24 +69,43 @@ func detectMotion() gocv.Mat {
 		// then dilate
 		kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
 		gocv.Dilate(imgThresh, &imgThresh, kernel)
+		kernel.Close()
 
+		// now find contours
 		contours := gocv.FindContours(imgThresh, gocv.RetrievalExternal, gocv.ChainApproxSimple)
+
+		found_motion := false
 		for i := 0; i < contours.Size(); i++ {
 			area := gocv.ContourArea(contours.At(i))
-			if area < 3000.0 {
-				continue
+			if area >= config.MinimumMotionArea {
+				found_motion = true
+				statusColor = color.RGBA{255, 0, 0, 0}
+				gocv.DrawContours(&img, contours, i, statusColor, 2)
+				rect := gocv.BoundingRect(contours.At(i))
+				gocv.Rectangle(&img, rect, color.RGBA{0, 0, 255, 0}, 2)
 			}
-
-			status = "Motion detected"
-			statusColor = color.RGBA{255, 0, 0, 0}
-			rect := gocv.BoundingRect(contours.At(i))
-			gocv.Rectangle(&img, rect, color.RGBA{255, 0, 0, 0}, 2)
 		}
+		contours.Close()
 
-		gocv.PutText(&img, status, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
+		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
-		return img
+		if found_motion {
+			defer img.Close()
+			imgDelta.Close()
+			imgThresh.Close()
+			mog2.Close()
+			break
+		}
 	}
+
+	if config.Debug {
+		window := gocv.NewWindow("Camera Debug Monitor")
+		window.IMShow(img)
+		window.WaitKey(0)
+		window.Close()
+	}
+
+	return img.ToBytes()
 }
 
 func main() {
@@ -121,17 +131,23 @@ func main() {
 	}
 	monitor, err := net.Dial("tcp", monitorAddr.String())
 	if err != nil {
-		log.Fatalf("failed to dial TCP: %s", err)
+		log.Fatal("failed to dial TCP: ", err)
 	}
 	defer monitor.Close()
 	log.Info("connected to monitor on ", monitorAddr.String())
 
+	webcam, err := gocv.VideoCaptureDevice(0)
+	if err != nil {
+		log.Fatal("failed to open first video capture device: ", err)
+	}
+	defer webcam.Close()
+
 	for {
-		motion := detectMotion()
-		log.Debug("sending motion event to monitor...")
-		_, err := monitor.Write(motion.ToBytes())
-		if err != nil {
-			log.Fatalf("failure while sending motion data: %s", err)
+		motion := detectMotion(config, webcam)
+		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "MB")
+		_, err := monitor.Write(motion)
+		if err != nil && err != io.EOF {
+			log.Fatal("failure while sending motion event data: ", err)
 		}
 	}
 }

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"flag"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"gocv.io/x/gocv"
 	"gopkg.in/yaml.v3"
@@ -68,6 +66,15 @@ func addDataToCameraBuffer(motion gocv.Mat, addr net.Addr, cameras []Camera) []C
 	return cameras
 }
 
+func hasNonZero(bs []byte) bool {
+	for _, b := range bs {
+		if b != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -114,13 +121,12 @@ func main() {
 					log.Debug("flushing camera buffers...")
 					// flush camera buffers to monitor feed window
 					for cindex, camera := range cameras {
-						if len(camera.Buffer) > 0 {
-							log.Debug("flushing camera ", cindex)
-							for mindex, motion := range camera.Buffer {
-								log.Debug("flushing motion ", mindex)
-								window.IMShow(motion)
-								// write to mounted USB disk here
-							}
+						log.Debug("flushing camera ", camera.Address)
+						for mindex, motion := range camera.Buffer {
+							log.Debug("flushing motion event ", mindex)
+							window.IMShow(motion)
+							window.WaitKey(10000)
+							// write to mounted USB disk here
 						}
 						cameras[cindex].Buffer = []gocv.Mat{}
 					}
@@ -136,29 +142,33 @@ func main() {
 			log.Fatal("failure accepting connection on camera listener: ", err)
 		} else {
 			cameraRoutines <- +1
-			go func(connection net.Conn) {
-				log.Debug(fmt.Sprintf("serving camera %s", connection.RemoteAddr().String()))
-				defer connection.Close()
+			go func(conn net.Conn) {
+				log.Debug("serving camera connection ", conn.RemoteAddr())
+				defer conn.Close()
 
-				var buffer bytes.Buffer
-				_, err := c.Read(buffer.Bytes())
-				if err != nil && err != io.EOF {
-					log.Fatal("failure reading bytes from connection: ", err)
+				// get motion event from camera connection
+				buffer := make([]byte, 0)
+				for {
+					_, err := conn.Read(buffer)
+					if err != nil {
+						log.Debug("error reading data:", err)
+						break
+					}
 				}
 
-				if len(buffer.Bytes()) > 0 {
-					motion := gocv.Mat{}
-					err := gocv.IMDecodeIntoMat(buffer.Bytes(), gocv.IMReadUnchanged, &motion)
-					if err != nil {
-						log.Fatal("failure while decoding bytes: ", err)
-					} else {
-						cameraMutex.Lock()
-						// maybe add new camera
-						cameras = addCamera(connection.RemoteAddr(), cameras)
-						// write data to corresponding camera buffer
-						cameras = addDataToCameraBuffer(motion, connection.RemoteAddr(), cameras)
-						cameraMutex.Unlock()
-					}
+				log.Debug("received data from camera: ", len(buffer), " bytes")
+
+				motion := gocv.Mat{}
+				err := gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
+				if err != nil {
+					log.Error("failure while decoding bytes: ", err)
+				} else {
+					cameraMutex.Lock()
+					// maybe add new camera
+					cameras = addCamera(conn.RemoteAddr(), cameras)
+					// write data to corresponding camera buffer
+					cameras = addDataToCameraBuffer(motion, conn.RemoteAddr(), cameras)
+					cameraMutex.Unlock()
 				}
 				cameraRoutines <- -1
 			}(c)

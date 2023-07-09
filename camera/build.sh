@@ -9,15 +9,14 @@ else
   ARCHOPT="GOARCH=$ARCH"
 fi
 
-rm -v \
-osss-camera \
-osss-camera.json \
-
+rm -v osss-camera
 go mod tidy && \
 env GOOS=linux $ARCHOPT go build -o osss-camera ./internal/app/camera && \
 cd ../monitor && \
 bash build.sh $ARCH && \
 cd ../camera
+
+rm -v osss-camera.json
 
 if ! python test/camera.py ; then
   printf "tests failed\n"
