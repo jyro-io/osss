@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -44,16 +45,22 @@ func getConfig(file string) Config {
 
 func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 	img := gocv.NewMat()
+	defer img.Close()
+	imgDelta := gocv.NewMat()
+	defer imgDelta.Close()
+	imgThresh := gocv.NewMat()
+	defer imgThresh.Close()
+	mog2 := gocv.NewBackgroundSubtractorMOG2()
+	defer mog2.Close()
+	found_motion := false
 
 	for {
-		imgDelta := gocv.NewMat()
-		imgThresh := gocv.NewMat()
-		mog2 := gocv.NewBackgroundSubtractorMOG2()
-
 		if ok := webcam.Read(&img); !ok {
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		if img.Empty() {
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
@@ -74,7 +81,6 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		// now find contours
 		contours := gocv.FindContours(imgThresh, gocv.RetrievalExternal, gocv.ChainApproxSimple)
 
-		found_motion := false
 		for i := 0; i < contours.Size(); i++ {
 			area := gocv.ContourArea(contours.At(i))
 			if area >= config.MinimumMotionArea {
@@ -90,11 +96,13 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
 		if found_motion {
-			defer img.Close()
-			imgDelta.Close()
-			imgThresh.Close()
-			mog2.Close()
 			break
+		} else {
+			img = gocv.NewMat()
+			imgDelta = gocv.NewMat()
+			imgThresh = gocv.NewMat()
+			mog2 = gocv.NewBackgroundSubtractorMOG2()
+			continue
 		}
 	}
 
@@ -102,7 +110,10 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		window := gocv.NewWindow("Camera Debug Monitor")
 		window.IMShow(img)
 		window.WaitKey(0)
-		window.Close()
+		err := window.Close()
+		if err != nil {
+			log.Fatal("failed to close debug window: ", err)
+		}
 	}
 
 	return img.ToBytes()
@@ -120,7 +131,7 @@ func main() {
 
 	level, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
-		log.Fatalf("invalid log level: %s", err)
+		log.Fatal("invalid log level: ", err)
 	}
 	log.SetLevel(level)
 
@@ -144,7 +155,7 @@ func main() {
 
 	for {
 		motion := detectMotion(config, webcam)
-		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "MB")
+		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "KB")
 		_, err := monitor.Write(motion)
 		if err != nil && err != io.EOF {
 			log.Fatal("failure while sending motion event data: ", err)
