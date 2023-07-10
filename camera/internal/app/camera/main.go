@@ -19,6 +19,8 @@ type Config struct {
 	MonitorAddress    string  `yaml:"monitorAddress"`
 	Port              int     `yaml:"port"`
 	CameraName        string  `yaml:"cameraName"`
+	Threshold         float32 `yaml:"threshold"`
+	MaxValue          float32 `yaml:"maxValue"`
 	MinimumMotionArea float64 `yaml:"minimumMotionArea"`
 }
 
@@ -70,8 +72,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		mog2.Apply(img, &imgDelta)
 
 		// remaining cleanup of the image to use for finding contours.
-		// first use threshold
-		gocv.Threshold(imgDelta, &imgThresh, 25, 255, gocv.ThresholdBinary)
+		gocv.Threshold(imgDelta, &imgThresh, config.Threshold, config.MaxValue, gocv.ThresholdBinary)
 
 		// then dilate
 		kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
@@ -96,7 +97,16 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
 		if foundMotion {
-			break
+			if config.Debug {
+				window := gocv.NewWindow("Camera Debug Monitor")
+				window.IMShow(img)
+				window.WaitKey(1000)
+				err := window.Close()
+				if err != nil {
+					log.Fatal("failed to close debug window: ", err)
+				}
+			}
+			return img.ToBytes()
 		} else {
 			img = gocv.NewMat()
 			imgDelta = gocv.NewMat()
@@ -105,18 +115,6 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 			continue
 		}
 	}
-
-	if config.Debug {
-		window := gocv.NewWindow("Camera Debug Monitor")
-		window.IMShow(img)
-		window.WaitKey(1000)
-		err := window.Close()
-		if err != nil {
-			log.Fatal("failed to close debug window: ", err)
-		}
-	}
-
-	return img.ToBytes()
 }
 
 func main() {
