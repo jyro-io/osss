@@ -16,7 +16,7 @@ cd ../monitor && \
 bash build.sh $ARCH
 cd ../camera
 
-rm -v osss-camera.json
+rm -v osss-camera*.json
 
 if ! python test/camera.py ; then
   printf "tests failed\n"

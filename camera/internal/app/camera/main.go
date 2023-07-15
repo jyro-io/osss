@@ -15,7 +15,6 @@ import (
 )
 
 type Config struct {
-	Debug             bool    `yaml:"debug"`
 	LogLevel          string  `yaml:"logLevel"`
 	MonitorAddress    string  `yaml:"monitorAddress"`
 	Port              int     `yaml:"port"`
@@ -46,7 +45,7 @@ func getConfig(file string) Config {
 	return c
 }
 
-func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
+func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []byte {
 	img := gocv.NewMat()
 	defer img.Close()
 	imgDelta := gocv.NewMat()
@@ -55,9 +54,9 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 	defer imgThresh.Close()
 	mog2 := gocv.NewBackgroundSubtractorMOG2()
 	defer mog2.Close()
-	foundMotion := false
 
 	for {
+		foundMotion := false
 		if ok := webcam.Read(&img); !ok {
 			time.Sleep(100 * time.Millisecond)
 			continue
@@ -79,38 +78,26 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 
 		for i := 0; i < contours.Size(); i++ {
 			area := gocv.ContourArea(contours.At(i))
-			if area >= config.MinimumMotionArea {
+			if area < config.MinimumMotionArea {
+				continue
+			} else {
 				foundMotion = true
-				statusColor = color.RGBA{255, 0, 0, 0}
-				gocv.DrawContours(&img, contours, i, statusColor, 2)
-				rect := gocv.BoundingRect(contours.At(i))
-				gocv.Rectangle(&img, rect, color.RGBA{0, 0, 255, 0}, 2)
 			}
+			statusColor = color.RGBA{255, 0, 0, 0}
+			gocv.DrawContours(&img, contours, i, statusColor, 2)
+			rect := gocv.BoundingRect(contours.At(i))
+			gocv.Rectangle(&img, rect, color.RGBA{0, 0, 255, 0}, 2)
 		}
 		contours.Close()
 
 		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
 		if foundMotion {
-			if config.Debug {
-				window := gocv.NewWindow("Debug Camera")
-				window.IMShow(img)
-				window.WaitKey(0)
-				err := window.Close()
-				if err != nil {
-					log.Fatal("failed to close debug window: ", err)
-				}
-			}
 			encodedImg, err := gocv.IMEncode(".jpg", img)
 			if err != nil {
 				log.Fatal("failed to encode image: ", err)
 			}
 			return encodedImg.GetBytes()
-		} else {
-			img = gocv.NewMat()
-			imgDelta = gocv.NewMat()
-			imgThresh = gocv.NewMat()
-			mog2 = gocv.NewBackgroundSubtractorMOG2()
 		}
 	}
 }
@@ -120,6 +107,7 @@ func main() {
 	log.Info("started")
 
 	configFile := flag.String("config-file", "configs/config.yaml", "config file location")
+	cameraDevice := flag.Int("camera-device", 0, "camera device")
 	flag.Parse()
 	log.Debug(*configFile)
 	config := getConfig(*configFile)
@@ -136,31 +124,27 @@ func main() {
 		IP:   net.ParseIP(config.MonitorAddress),
 		Port: config.Port,
 	}
+	conn, err := net.Dial("tcp", monitorAddr.String())
+	if err != nil {
+		log.Fatal("failed to dial TCP: ", err)
+	}
+	defer conn.Close()
+	log.Trace("connected to monitor on ", monitorAddr.String())
 
-	webcam, err := gocv.VideoCaptureDevice(0)
+	webcam, err := gocv.VideoCaptureDevice(*cameraDevice)
 	if err != nil {
 		log.Fatal("failed to open first video capture device: ", err)
 	}
 	defer webcam.Close()
 
 	for {
-		motion := detectMotion(config, webcam)
-		conn, err := net.Dial("tcp", monitorAddr.String())
-		if err != nil {
-			log.Fatal("failed to dial TCP: ", err)
-		}
-		log.Debug("connected to monitor on ", monitorAddr.String())
+		motion := detectMotion(config, *cameraDevice, webcam)
 
-		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "KB")
+		log.Trace("sending motion event data to monitor: ", len(motion)/1024, "KB")
 		reader := bytes.NewReader(motion)
 		_, err = io.Copy(conn, reader)
 		if err != nil && err != io.EOF {
 			log.Fatal("failure while sending motion event data: ", err)
-		}
-
-		err = conn.Close()
-		if err != nil {
-			log.Fatal("failure while closing connection to monitor: ", err)
 		}
 	}
 }

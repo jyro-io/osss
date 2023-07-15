@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -42,32 +41,6 @@ func getConfig(file string) Config {
 	return c
 }
 
-type Camera struct {
-	Address net.Addr
-	Buffer  []gocv.Mat
-}
-
-func addCamera(addr net.Addr, cameras []Camera) []Camera {
-	for _, camera := range cameras {
-		if camera.Address == addr {
-			return cameras
-		}
-	}
-	cameras = append(cameras, Camera{Address: addr, Buffer: []gocv.Mat{}})
-	log.Debug("added camera: ", addr)
-	return cameras
-}
-
-func addDataToCameraBuffer(motion gocv.Mat, addr net.Addr, cameras []Camera) []Camera {
-	for index, camera := range cameras {
-		if camera.Address == addr {
-			cameras[index].Buffer = append(cameras[index].Buffer, motion)
-			log.Debug("added data to camera buffer: ", addr)
-		}
-	}
-	return cameras
-}
-
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Info("started")
@@ -97,73 +70,45 @@ func main() {
 	}
 	defer cameraListener.Close()
 
-	var cameras []Camera
-	var cameraMutex sync.Mutex
-	var cameraRoutines = make(chan int)
-	window := gocv.NewWindow("Camera Monitor")
-	defer window.Close()
-	// call perpetual goroutine that flushes camera buffers
-	go func() {
-		for {
-			// wait for all goroutines to finish,
-			// then flush camera buffers
-			numGoroutines := 0
-			for diff := range cameraRoutines {
-				numGoroutines += diff
-				if numGoroutines == 0 {
-					log.Debug("flushing camera buffers...")
-					// flush camera buffers to monitor feed window
-					for cIndex, camera := range cameras {
-						log.Debug("flushing camera ", camera.Address)
-						for mIndex, motion := range camera.Buffer {
-							log.Debug("flushing motion event ", mIndex)
-							window.IMShow(motion)
-							window.WaitKey(0)
-							// write to mounted USB disk here
-						}
-						cameras[cIndex].Buffer = []gocv.Mat{}
-					}
-				}
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
 	// perpetual loop for accepting camera connections
 	for {
 		c, err := cameraListener.Accept()
 		if err != nil && err != io.EOF {
 			log.Fatal("failure accepting connection on camera listener: ", err)
 		} else {
-			cameraRoutines <- +1
+			// spawn goroutine for each camera
 			go func(conn net.Conn) {
-				log.Debug("serving camera connection ", conn.RemoteAddr())
+				log.Trace("serving camera connection ", conn.RemoteAddr())
 				defer conn.Close()
+				cameraAddress := conn.RemoteAddr().String()
+				window := gocv.NewWindow(cameraAddress)
+				defer window.Close()
 
-				// get motion event from camera connection
-				var buffer bytes.Buffer
-				_, err := io.Copy(&buffer, conn)
-				if err != nil {
-					log.Error("error reading data:", err)
-				} else {
-					data := buffer.Bytes()
-					log.Debug("received data from camera: ", len(data)/1024, "KB")
-
-					motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
-					if err != nil || motion.Empty() {
-						log.Error("failure while decoding bytes to matrix: ", err)
+				// perpetual loop to get motion data from camera connection
+				for {
+					buffer := make([]byte, 1024*100) // 100KB
+					n, err := conn.Read(buffer)
+					if err != nil {
+						log.Error("error reading data: ", err)
 					} else {
-						window.IMShow(motion)
-						window.WaitKey(0)
-						cameraMutex.Lock()
-						// maybe add new camera
-						cameras = addCamera(conn.RemoteAddr(), cameras)
-						// write data to corresponding camera buffer
-						cameras = addDataToCameraBuffer(motion, conn.RemoteAddr(), cameras)
-						cameraMutex.Unlock()
+						if n > 0 {
+							data := bytes.Trim(buffer, "\x00")
+							log.Trace("received ", len(data)/1024, "KB from ", cameraAddress)
+
+							motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
+							if err != nil || motion.Empty() {
+								log.Error("failure while decoding bytes to matrix: ", err)
+							} else {
+								window.IMShow(motion)
+								window.WaitKey(1)
+								//write to mounted USB disk here
+							}
+						}
 					}
+					time.Sleep(10 * time.Millisecond)
 				}
-				cameraRoutines <- -1
 			}(c)
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }

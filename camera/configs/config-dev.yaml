@@ -1,8 +1,7 @@
-debug: true
-logLevel: debug
+logLevel: trace
 monitorAddress: 127.0.0.1
 port: 7777
 cameraName: laptop_cam
-threshold: 100
+threshold: 25
 maxValue: 255
 minimumMotionArea: 3000
