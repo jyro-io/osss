@@ -76,7 +76,7 @@ func main() {
 	flag.Parse()
 	log.Debug(*configFile)
 	config := getConfig(*configFile)
-	log.Debug(config)
+	log.Info(config)
 
 	level, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
