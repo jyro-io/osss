@@ -88,7 +88,7 @@ func main() {
 				for {
 					buffer := make([]byte, 1024*100) // 100KB
 					n, err := conn.Read(buffer)
-					if err != nil {
+					if err != nil && err != io.EOF {
 						log.Error("error reading data: ", err)
 					} else {
 						if n > 0 {

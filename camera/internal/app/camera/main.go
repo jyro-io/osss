@@ -20,7 +20,6 @@ type Config struct {
 	Port              int     `yaml:"port"`
 	CameraName        string  `yaml:"cameraName"`
 	Threshold         float32 `yaml:"threshold"`
-	MaxValue          float32 `yaml:"maxValue"`
 	MinimumMotionArea float64 `yaml:"minimumMotionArea"`
 }
 
@@ -45,7 +44,15 @@ func getConfig(file string) Config {
 	return c
 }
 
-func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []byte {
+func detectMotion(config Config, cameraDevice int, motionChannel chan []byte) {
+	sleepDuration := (1000 / 30) * time.Millisecond // 30 frames per second
+
+	webcam, err := gocv.VideoCaptureDevice(cameraDevice)
+	defer webcam.Close()
+	if err != nil {
+		log.Fatal("failed to open first video capture device: ", err)
+	}
+
 	img := gocv.NewMat()
 	defer img.Close()
 	imgDelta := gocv.NewMat()
@@ -56,13 +63,12 @@ func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []
 	defer mog2.Close()
 
 	for {
-		foundMotion := false
 		if ok := webcam.Read(&img); !ok {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(sleepDuration)
 			continue
 		}
 		if img.Empty() {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(sleepDuration)
 			continue
 		}
 
@@ -70,7 +76,7 @@ func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []
 
 		// first phase of cleaning up image, obtain foreground only
 		mog2.Apply(img, &imgDelta)
-		gocv.Threshold(imgDelta, &imgThresh, config.Threshold, config.MaxValue, gocv.ThresholdBinary)
+		gocv.Threshold(imgDelta, &imgThresh, config.Threshold, 255, gocv.ThresholdBinary)
 		kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
 		gocv.Dilate(imgThresh, &imgThresh, kernel)
 		kernel.Close()
@@ -80,8 +86,6 @@ func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []
 			area := gocv.ContourArea(contours.At(i))
 			if area < config.MinimumMotionArea {
 				continue
-			} else {
-				foundMotion = true
 			}
 			statusColor = color.RGBA{255, 0, 0, 0}
 			gocv.DrawContours(&img, contours, i, statusColor, 2)
@@ -92,13 +96,12 @@ func detectMotion(config Config, cameraDevice int, webcam *gocv.VideoCapture) []
 
 		gocv.PutText(&img, config.CameraName, image.Pt(10, 20), gocv.FontHersheyPlain, 1.2, statusColor, 2)
 
-		if foundMotion {
-			encodedImg, err := gocv.IMEncode(".jpg", img)
-			if err != nil {
-				log.Fatal("failed to encode image: ", err)
-			}
-			return encodedImg.GetBytes()
+		encodedImg, err := gocv.IMEncode(".jpg", img)
+		if err != nil {
+			log.Error("failed to encode image: ", err)
 		}
+		motionChannel <- encodedImg.GetBytes()
+		time.Sleep(sleepDuration)
 	}
 }
 
@@ -131,20 +134,19 @@ func main() {
 	defer conn.Close()
 	log.Trace("connected to monitor on ", monitorAddr.String())
 
-	webcam, err := gocv.VideoCaptureDevice(*cameraDevice)
-	if err != nil {
-		log.Fatal("failed to open first video capture device: ", err)
-	}
-	defer webcam.Close()
-
+	motionChannel := make(chan []byte)
+	// perpetual goroutine for the camera feed
+	go detectMotion(config, *cameraDevice, motionChannel)
+	// perpetual loop for sending data to monitor
 	for {
-		motion := detectMotion(config, *cameraDevice, webcam)
-
-		log.Trace("sending motion event data to monitor: ", len(motion)/1024, "KB")
-		reader := bytes.NewReader(motion)
-		_, err = io.Copy(conn, reader)
-		if err != nil && err != io.EOF {
-			log.Fatal("failure while sending motion event data: ", err)
+		for data := range motionChannel {
+			log.Trace("sending motion data to monitor: ", len(data)/1024, "KB")
+			reader := bytes.NewReader(data)
+			_, err = io.Copy(conn, reader)
+			if err != nil && err != io.EOF {
+				log.Error("failure while sending motion data: ", err)
+			}
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
