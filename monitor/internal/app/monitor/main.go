@@ -144,22 +144,23 @@ func main() {
 				_, err := io.Copy(&buffer, conn)
 				if err != nil {
 					log.Error("error reading data:", err)
-				}
-				data := buffer.Bytes()
-				log.Debug("received data from camera: ", len(data)/1024, "KB")
-
-				motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
-				if err != nil || motion.Empty() {
-					log.Error("failure while decoding bytes to matrix: ", err)
 				} else {
-					window.IMShow(motion)
-					window.WaitKey(0)
-					cameraMutex.Lock()
-					// maybe add new camera
-					cameras = addCamera(conn.RemoteAddr(), cameras)
-					// write data to corresponding camera buffer
-					cameras = addDataToCameraBuffer(motion, conn.RemoteAddr(), cameras)
-					cameraMutex.Unlock()
+					data := buffer.Bytes()
+					log.Debug("received data from camera: ", len(data)/1024, "KB")
+
+					motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
+					if err != nil || motion.Empty() {
+						log.Error("failure while decoding bytes to matrix: ", err)
+					} else {
+						window.IMShow(motion)
+						window.WaitKey(0)
+						cameraMutex.Lock()
+						// maybe add new camera
+						cameras = addCamera(conn.RemoteAddr(), cameras)
+						// write data to corresponding camera buffer
+						cameras = addDataToCameraBuffer(motion, conn.RemoteAddr(), cameras)
+						cameraMutex.Unlock()
+					}
 				}
 				cameraRoutines <- -1
 			}(c)

@@ -101,7 +101,11 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 					log.Fatal("failed to close debug window: ", err)
 				}
 			}
-			return img.ToBytes()
+			encodedImg, err := gocv.IMEncode(".jpg", img)
+			if err != nil {
+				log.Fatal("failed to encode image: ", err)
+			}
+			return encodedImg.GetBytes()
 		} else {
 			img = gocv.NewMat()
 			imgDelta = gocv.NewMat()
@@ -141,21 +145,20 @@ func main() {
 
 	for {
 		motion := detectMotion(config, webcam)
-		monitor, err := net.Dial("tcp", monitorAddr.String())
+		conn, err := net.Dial("tcp", monitorAddr.String())
 		if err != nil {
 			log.Fatal("failed to dial TCP: ", err)
 		}
-		log.Info("connected to monitor on ", monitorAddr.String())
+		log.Debug("connected to monitor on ", monitorAddr.String())
 
 		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "KB")
-		//_, err = monitor.Write(motion)
 		reader := bytes.NewReader(motion)
-		_, err = io.Copy(monitor, reader)
+		_, err = io.Copy(conn, reader)
 		if err != nil && err != io.EOF {
 			log.Fatal("failure while sending motion event data: ", err)
 		}
 
-		err = monitor.Close()
+		err = conn.Close()
 		if err != nil {
 			log.Fatal("failure while closing connection to monitor: ", err)
 		}
