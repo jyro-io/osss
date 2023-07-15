@@ -50,7 +50,7 @@ To build the software, follow these steps:
 For the monitor, you'll need:
 
 * RPi 400 or Model B
-* Screen, we used a touchscreen to simplify usage 
+* Screen, I used a touchscreen to simplify usage 
 
 For the camera, you'll need:
 
