@@ -69,25 +69,18 @@ if [ $APP = "monitor" ] || [ $APP = "camera" ]; then
     exit 1
   fi
 
-  # build/test camera and monitor
-  cd $ROOTDIR/camera
-  source ".venv/bin/activate"
-  bash build.sh arm
-  source deactivate
-  cd $ROOTDIR
-
   # setup configuration files
   INSTALLDIRFILES=$ROOTDIR/pi-gen/$APPNAME/00-install/files/
   mkdir -p $INSTALLDIRFILES
-  cp -v $ROOTDIR/$APP/$APPNAME $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/go.mod $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/go.sum $INSTALLDIRFILES
+  cp -v $ROOTDIR/$APP/internal/app/$APP/main.go $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/configs/config.yaml $INSTALLDIRFILES
   cp -v $ROOTDIR/$APP/etc/$APPNAME.service $INSTALLDIRFILES
   printf "IMG_NAME=$APPNAME\n" >> $ROOTDIR/pi-gen/$APPCONFIG
 
   # misc configuration files
-  if [ $APP = "monitor" ]; then
-    cp -v $ROOTDIR/$APP/etc/camera-stream.desktop $INSTALLDIRFILES
-  elif [ $APP = "camera" ]; then
+  if [ $APP = "camera" ]; then
     cd $ROOTDIR
     python $APP/scripts/configure.py  # configure camera
     cd $ROOTDIR/pi-gen
