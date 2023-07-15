@@ -19,6 +19,10 @@ This has only been tested on Ubuntu 22.
 
 ### Testing
 
+#### Dependencies
+
+* Build/Install gocv: https://gocv.io/getting-started/linux/
+
 The only comprehensive way to test this before building the RPi images
 and deploying to hardware is to have a development machine with two cameras.
 
@@ -37,12 +41,11 @@ and you should see movements outlined in red on those feeds.
 
 To build the software, follow these steps:
 
-* Build/Install gocv: https://gocv.io/getting-started/linux/
 * Install test dependencies: `sudo apt-get install libcanberra-gtk-module`
 * The monitor application needs to be built first: `bash build_image.sh monitor`
 * Followed by the camera application: `bash build_image.sh camera`
 
-## Building the hardware
+## Hardware
 
 For the monitor, you'll need:
 
