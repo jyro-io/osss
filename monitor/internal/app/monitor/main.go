@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"gocv.io/x/gocv"
@@ -117,7 +118,7 @@ func main() {
 						for mIndex, motion := range camera.Buffer {
 							log.Debug("flushing motion event ", mIndex)
 							window.IMShow(motion)
-							window.WaitKey(1000)
+							window.WaitKey(0)
 							// write to mounted USB disk here
 						}
 						cameras[cIndex].Buffer = []gocv.Mat{}
@@ -139,22 +140,20 @@ func main() {
 				defer conn.Close()
 
 				// get motion event from camera connection
-				buffer := make([]byte, 0)
-				for {
-					_, err := conn.Read(buffer)
-					if err != nil {
-						log.Debug("error reading data:", err)
-						break
-					}
-				}
-
-				log.Debug("received data from camera: ", len(buffer), " bytes")
-
-				motion := gocv.Mat{}
-				err := gocv.IMDecodeIntoMat(buffer, gocv.IMReadUnchanged, &motion)
+				var buffer bytes.Buffer
+				_, err := io.Copy(&buffer, conn)
 				if err != nil {
-					log.Error("failure while decoding bytes: ", err)
+					log.Error("error reading data:", err)
+				}
+				data := buffer.Bytes()
+				log.Debug("received data from camera: ", len(data)/1024, "KB")
+
+				motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
+				if err != nil || motion.Empty() {
+					log.Error("failure while decoding bytes to matrix: ", err)
 				} else {
+					window.IMShow(motion)
+					window.WaitKey(0)
 					cameraMutex.Lock()
 					// maybe add new camera
 					cameras = addCamera(conn.RemoteAddr(), cameras)

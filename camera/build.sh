@@ -13,7 +13,7 @@ rm -v osss-camera
 go mod tidy && \
 env GOOS=linux $ARCHOPT go build -o osss-camera ./internal/app/camera && \
 cd ../monitor && \
-bash build.sh $ARCH && \
+bash build.sh $ARCH
 cd ../camera
 
 rm -v osss-camera.json

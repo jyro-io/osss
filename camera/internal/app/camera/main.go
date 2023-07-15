@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"gocv.io/x/gocv"
@@ -70,16 +71,10 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 
 		// first phase of cleaning up image, obtain foreground only
 		mog2.Apply(img, &imgDelta)
-
-		// remaining cleanup of the image to use for finding contours.
 		gocv.Threshold(imgDelta, &imgThresh, config.Threshold, config.MaxValue, gocv.ThresholdBinary)
-
-		// then dilate
 		kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
 		gocv.Dilate(imgThresh, &imgThresh, kernel)
 		kernel.Close()
-
-		// now find contours
 		contours := gocv.FindContours(imgThresh, gocv.RetrievalExternal, gocv.ChainApproxSimple)
 
 		for i := 0; i < contours.Size(); i++ {
@@ -100,7 +95,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 			if config.Debug {
 				window := gocv.NewWindow("Camera Debug Monitor")
 				window.IMShow(img)
-				window.WaitKey(1000)
+				window.WaitKey(0)
 				err := window.Close()
 				if err != nil {
 					log.Fatal("failed to close debug window: ", err)
@@ -112,7 +107,6 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 			imgDelta = gocv.NewMat()
 			imgThresh = gocv.NewMat()
 			mog2 = gocv.NewBackgroundSubtractorMOG2()
-			continue
 		}
 	}
 }
@@ -138,12 +132,6 @@ func main() {
 		IP:   net.ParseIP(config.MonitorAddress),
 		Port: config.Port,
 	}
-	monitor, err := net.Dial("tcp", monitorAddr.String())
-	if err != nil {
-		log.Fatal("failed to dial TCP: ", err)
-	}
-	defer monitor.Close()
-	log.Info("connected to monitor on ", monitorAddr.String())
 
 	webcam, err := gocv.VideoCaptureDevice(0)
 	if err != nil {
@@ -153,10 +141,23 @@ func main() {
 
 	for {
 		motion := detectMotion(config, webcam)
+		monitor, err := net.Dial("tcp", monitorAddr.String())
+		if err != nil {
+			log.Fatal("failed to dial TCP: ", err)
+		}
+		log.Info("connected to monitor on ", monitorAddr.String())
+
 		log.Debug("sending motion event data to monitor: ", len(motion)/1024, "KB")
-		_, err := monitor.Write(motion)
+		//_, err = monitor.Write(motion)
+		reader := bytes.NewReader(motion)
+		_, err = io.Copy(monitor, reader)
 		if err != nil && err != io.EOF {
 			log.Fatal("failure while sending motion event data: ", err)
+		}
+
+		err = monitor.Close()
+		if err != nil {
+			log.Fatal("failure while closing connection to monitor: ", err)
 		}
 	}
 }

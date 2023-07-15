@@ -5,4 +5,4 @@ port: 7777
 cameraName: laptop_cam
 threshold: 100
 maxValue: 255
-minimumMotionArea: 30000
+minimumMotionArea: 3000
