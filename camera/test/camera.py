@@ -72,39 +72,3 @@ camera1 = subprocess.Popen(
 
 while True:
   time.sleep(1)
-
-#fail(camera)
-
-# # send data to camera listener
-# # from two simulated cameras
-# sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# cameraListener = ('127.0.0.1', parsed_yaml['port'])
-# sock1.connect(cameraListener)
-# sock2.connect(cameraListener)
-# message1 = 'testing message from camera 1'  # 29 bytes
-# message2 = 'longer testing message from camera 2'  # 36 bytes
-# try:
-#   sock1.sendall(message1.encode())
-#   print(f"sent data on camera listener: \"{message1}\" to {cameraListener}")
-#   sock2.sendall(message2.encode())
-#   print(f"sent data on camera listener: \"{message2}\" to {cameraListener}")
-# finally:
-#   sock1.close()
-#   sock2.close()
-#
-# # wait for response from camera feed
-#
-# messages = []
-# while True:
-#   data, addr = cameraSock.recvfrom(2048)
-#   print(f"received data on camera feed: {data.decode()} from {addr}")
-#   if len(data.decode()) > 0:
-#     messages.append(data.decode().strip('\x00'))
-#   if len(messages) == 2:
-#     break
-# if message1 not in messages or message2 not in messages:
-#   print('failed to receive data on camera feed')
-#   fail(camera)
-#
-# succeed(camera)

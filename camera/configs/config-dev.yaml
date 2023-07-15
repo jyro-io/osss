@@ -2,5 +2,5 @@ logLevel: debug
 monitorAddress: 127.0.0.1
 port: 7777
 cameraName: laptop_cam
-threshold: 25
-minimumMotionArea: 3000
+threshold: 100
+minimumMotionArea: 6000

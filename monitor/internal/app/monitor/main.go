@@ -97,7 +97,7 @@ func main() {
 
 							motion, err := gocv.IMDecode(data, gocv.IMReadUnchanged)
 							if err != nil || motion.Empty() {
-								log.Error("failure while decoding bytes to matrix: ", err)
+								log.Debug("failure while decoding bytes to matrix: ", err)
 							} else {
 								window.IMShow(motion)
 								window.WaitKey(1)
