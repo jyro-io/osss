@@ -93,7 +93,7 @@ func detectMotion(config Config, webcam *gocv.VideoCapture) []byte {
 
 		if foundMotion {
 			if config.Debug {
-				window := gocv.NewWindow("Camera Debug Monitor")
+				window := gocv.NewWindow("Debug Camera")
 				window.IMShow(img)
 				window.WaitKey(0)
 				err := window.Close()
