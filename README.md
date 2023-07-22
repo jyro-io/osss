@@ -10,12 +10,12 @@ software and the Raspberry Pi hardware platform.
 
 ## Dependencies
 
-* PiSugar: https://github.com/PiSugar/PiSugar
 * Gocv: https://gocv.io
+* PiSugar: https://github.com/PiSugar/PiSugar
 
 ## Software
 
-This has only been tested on Ubuntu 22.
+This build process has only been tested on Ubuntu 22.
 
 ### Testing
 
@@ -37,7 +37,9 @@ in `camera` directory, running `bash build.sh` should result in two
 windows that contain the camera feed from the monitor application,
 and you should see movements outlined in red on those feeds.
 
-### Build
+To run the tests, change to the `camera` directory and run `bash build.sh`.
+
+### Image Build
 
 To build the software, follow these steps:
 
@@ -63,7 +65,13 @@ For the camera, you'll need:
 * RPi Camera
   * I 3D printed this camera housing: https://www.thingiverse.com/thing:1707484
 
-## Future Development 
+## Development notes
+
+* If you make modifications to the pi-gen process, 
+  make sure that your code accounts for both starting 
+  from scratch, or resuming the image build from an arbitrary
+  stage.
+
+## Future Development
 
 * Monitor: Add support for capturing video clips on the monitor and saving to a mounted USB drive. [Issue](https://github.com/rory-linehan/osss/issues/1)
-* Camera: Use gocv instead of Motion for motion-triggered video capture. [Issue](https://github.com/rory-linehan/osss/issues/2)
