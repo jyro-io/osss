@@ -49,7 +49,7 @@ time.sleep(1)  # wait for start
 print('loading camera config...')
 camera_yaml = parse_yaml_file('configs/config-dev.yaml')
 
-camera_0_log_write = open('osss-camera-0.json', 'w')
+camera_0_log_write = open(f"osss-camera-{camera_0}.json", 'w')
 print(f"start camera {camera_0} in the background...")
 camera0 = subprocess.Popen(
   [
@@ -61,7 +61,7 @@ camera0 = subprocess.Popen(
   stderr=camera_0_log_write
 )
 
-camera_1_log_write = open('osss-camera-1.json', 'w')
+camera_1_log_write = open(f"osss-camera-{camera_1}.json", 'w')
 print(f"start camera {camera_1} in the background...")
 camera1 = subprocess.Popen(
   [

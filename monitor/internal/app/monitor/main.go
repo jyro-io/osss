@@ -86,7 +86,7 @@ func main() {
 
 				// perpetual loop to get motion data from camera connection
 				for {
-					buffer := make([]byte, 1024*100) // 100KB
+					buffer := make([]byte, 2048*100) // 200KB
 					n, err := conn.Read(buffer)
 					if err != nil && err != io.EOF {
 						log.Error("error reading data: ", err)
