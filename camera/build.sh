@@ -18,7 +18,7 @@ cd ../camera
 
 rm -v osss-camera*.json
 
-if ! python test/camera.py ; then
+if ! python test/camera.py 0 2 ; then
   printf "tests failed\n"
   killall osss-camera
   killall osss-monitor

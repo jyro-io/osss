@@ -1,7 +1,7 @@
 import yaml
 import subprocess
-import socket
 import sys
+from sys import argv
 import time
 
 
@@ -25,6 +25,9 @@ def succeed(camera):
   sys.exit(0)
 
 
+_, camera_0, camera_1 = argv
+print(f"cameras: {camera_0}, {camera_1}")
+
 print('running camera tests...')
 
 print('loading monitor config...')
@@ -47,24 +50,24 @@ print('loading camera config...')
 camera_yaml = parse_yaml_file('configs/config-dev.yaml')
 
 camera_0_log_write = open('osss-camera-0.json', 'w')
-print('start camera 0 in the background...')
+print(f"start camera {camera_0} in the background...")
 camera0 = subprocess.Popen(
   [
     './osss-camera',
     '--config-file', 'configs/config-dev.yaml',
-    '--camera-device', '0'
+    '--camera-device', camera_0
   ],
   stdout=camera_0_log_write,
   stderr=camera_0_log_write
 )
 
 camera_1_log_write = open('osss-camera-1.json', 'w')
-print('start camera 1 in the background...')
+print(f"start camera {camera_1} in the background...")
 camera1 = subprocess.Popen(
   [
     './osss-camera',
     '--config-file', 'configs/config-dev.yaml',
-    '--camera-device', '2'  # increment until it works
+    '--camera-device', camera_1
   ],
   stdout=camera_1_log_write,
   stderr=camera_1_log_write

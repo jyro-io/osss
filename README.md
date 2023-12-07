@@ -23,21 +23,19 @@ This build process has only been tested on Ubuntu 22.
 
 * Build/Install gocv: https://gocv.io/getting-started/linux/
 
+#### Running the tests
+
 The only comprehensive way to test this before building the RPi images
 and deploying to hardware is to have a development machine with two cameras.
 
-You may have to fiddle with the `camera/test/camera.py` script,
-specifically the `--camera-device` lines so that the correct
-device numbers are referenced. 
+Use `ls /dev | grep video` to find relevant device files for your system. 
 
-Use `ls /dev | grep video` to find relevant options for your system. 
+In `camera` directory, running `bash build.sh 0 2` should result in two
+windows that contain the camera feed from the monitor application.
+If not, fiddle with the two camera numbers to get the right combo
+for your system. 
 
-After the correct device numbers are found, 
-in `camera` directory, running `bash build.sh` should result in two
-windows that contain the camera feed from the monitor application,
-and you should see movements outlined in red on those feeds.
-
-To run the tests, change to the `camera` directory and run `bash build.sh`.
+You should see movements outlined in red on your two camera feeds.
 
 ### Image Build
 
