@@ -1,4 +1,7 @@
-logLevel: info
-monitorAddress: 192.168.0.10
+logLevel: debug
+monitorAddress: 192.168.1.10
 port: 7777
-videoFormat: mkv
+cameraName: front_door
+threshold: 25
+maxValue: 255
+minimumMotionArea: 3000

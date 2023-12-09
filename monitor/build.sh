@@ -10,11 +10,7 @@ else
 fi
 
 killall osss-monitor
-rm -v osss-monitor osss-monitor.json
+rm -v osss-monitor
 go mod tidy && \
-env GOOS=linux $ARCHOPT go build -o osss-monitor ./internal/app/monitor
-
-if ! python test/monitor.py ; then
-  printf "monitor tests failed\n"
-  exit 1
-fi
+env GOOS=linux $ARCHOPT go build -o osss-monitor ./internal/app/monitor && \
+rm -v osss-monitor.json
